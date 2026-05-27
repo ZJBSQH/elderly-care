@@ -1,0 +1,42 @@
+/**
+ * 老人端全局样式变量
+ */
+
+// ========== 颜色变量 ==========
+$color-primary: #409EFF;        // 主色：温和蓝
+$color-success: #52C41A;        // 成功绿
+$color-warning: #FF9500;        // 警告橙
+$color-danger: #FF6B6B;         // 危险红
+$color-text: #222222;           // 主文字
+$color-text-light: #666666;     // 次要文字
+$color-text-placeholder: #999999; // 辅助文字
+$color-bg: #F7FCFF;             // 背景色：浅米蓝
+$color-white: #FFFFFF;          // 白色
+$color-border: #E8E8E8;         // 边框色
+
+// ========== 字体大小（老人专用 - 大号字体）==========
+$elder-font-small: 28rpx;       // 小字号
+$elder-font-base: 32rpx;        // 基础字号
+$elder-font-medium: 36rpx;      // 中等字号
+$elder-font-large: 40rpx;       // 大字号
+$elder-font-xl: 48rpx;          // 超大字号
+
+// ========== 间距 ==========
+$elder-spacing-sm: 16rpx;       // 小间距
+$elder-spacing: 24rpx;          // 基础间距
+$elder-spacing-lg: 32rpx;       // 大间距
+$elder-spacing-xl: 40rpx;       // 超大间距
+
+// ========== 圆角 ==========
+$elder-radius-sm: 12rpx;        // 小圆角
+$elder-radius: 16rpx;           // 基础圆角
+$elder-radius-lg: 24rpx;        // 大圆角
+$elder-radius-xl: 32rpx;        // 超大圆角
+
+// ========== 阴影 ==========
+$elder-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+$elder-shadow-lg: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
+
+// ========== 按钮高度（老人专用 - 大按钮）==========
+$elder-btn-height: 88rpx;       // 基础按钮高度
+$elder-btn-height-lg: 100rpx;   // 大按钮高度

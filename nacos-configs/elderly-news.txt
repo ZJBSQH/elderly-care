@@ -1,0 +1,13 @@
+# ============================================================
+# Nacos 命名空间: dev
+# Nacos Data ID: elderly-news.yaml
+# Group: DEFAULT_GROUP
+# 说明: 资讯服务配置 (数据源 + MyBatis)
+# ============================================================
+
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:13306}/db_elderly_news?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+
+mybatis-plus:
+  type-aliases-package: com.elderlycare.news.entity

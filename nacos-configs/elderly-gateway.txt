@@ -1,0 +1,43 @@
+# ============================================================
+# Nacos 命名空间: dev
+# Nacos Data ID: elderly-gateway.yaml
+# Group: DEFAULT_GROUP
+# 说明: Gateway 网关路由配置
+# ============================================================
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: elderly-auth
+          uri: lb://elderly-auth
+          predicates:
+            - Path=/auth/**
+        - id: elderly-user
+          uri: lb://elderly-user
+          predicates:
+            - Path=/user/**
+        - id: elderly-health
+          uri: lb://elderly-health
+          predicates:
+            - Path=/health/**
+        - id: elderly-medicine
+          uri: lb://elderly-medicine
+          predicates:
+            - Path=/medicine/**
+        - id: elderly-remind
+          uri: lb://elderly-remind
+          predicates:
+            - Path=/remind/**,/record/**
+        - id: elderly-news
+          uri: lb://elderly-news
+          predicates:
+            - Path=/health-knowledge/**
+        - id: elderly-ai
+          uri: lb://elderly-ai
+          predicates:
+            - Path=/ai/**
+        - id: elderly-admin
+          uri: lb://elderly-admin
+          predicates:
+            - Path=/admin/**

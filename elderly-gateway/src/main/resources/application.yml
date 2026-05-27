@@ -1,0 +1,29 @@
+spring:
+  config:
+    import:
+      - "nacos:elderly-care-cloud-shared.yaml?refreshEnabled=true&group=DEFAULT_GROUP"
+      - "nacos:elderly-gateway.yaml?refreshEnabled=true&group=DEFAULT_GROUP"
+  application:
+    name: elderly-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_HOST:localhost}:8848
+        namespace: 95fa0605-69e9-4b3b-8ecb-24feb2e63db3
+      config:
+        server-addr: ${NACOS_HOST:localhost}:8848
+        file-extension: yaml
+        namespace: 95fa0605-69e9-4b3b-8ecb-24feb2e63db3
+    gateway:
+      globalcors: # ← 全局 CORS 配置
+        cors-configurations: # ← CORS 规则集合
+          '[/**]': # ← 这个规则匹配哪些路径（/** 表示所有路径）
+            allowed-origin-patterns: "*"   # ← 允许哪些"源"（域名）来访问
+            allowed-methods: "*"           # ← 允许哪些 HTTP 方法
+            allowed-headers: "*"           # ← 允许请求携带哪些头
+            allow-credentials: false       # ← 是否允许携带 Cookie/认证信息
+            max-age: 3600                  # ← 预检请求缓存多久（秒）
+
+
+server:
+  port: 8090

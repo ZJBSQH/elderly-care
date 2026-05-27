@@ -1,0 +1,26 @@
+logging:
+  level:
+    com.alibaba.nacos.client.config: DEBUG
+    com.alibaba.nacos.client.naming: DEBUG
+
+spring:
+  config:
+    import:
+      - "nacos:elderly-care-cloud-shared.yaml?refreshEnabled=true&group=DEFAULT_GROUP"
+      - "nacos:elderly-admin.yaml?refreshEnabled=true&group=DEFAULT_GROUP"
+  application:
+    name: elderly-admin
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_HOST:localhost}:8848
+        namespace: 95fa0605-69e9-4b3b-8ecb-24feb2e63db3
+      config:
+        server-addr: ${NACOS_HOST:localhost}:8848
+        file-extension: yaml
+        namespace: 95fa0605-69e9-4b3b-8ecb-24feb2e63db3
+
+
+
+server:
+  port: 8088

@@ -1,0 +1,77 @@
+
+services:
+  # Nacos 注册中心和配置中心
+  nacos:
+    image: nacos/nacos-server:v3.2.1
+    container_name: elderly-nacos
+    environment:
+      - MODE=standalone
+      - NACOS_AUTH_ENABLE=false
+      - NACOS_AUTH_TOKEN=RWxkZXJseUNhcmUyMDI2U2VjcmV0S2V5Rm9yTmFjb3NBdXRo
+      - NACOS_AUTH_IDENTITY_KEY=elderlyCare
+      - NACOS_AUTH_IDENTITY_VALUE=elderlyCare2026
+      - PREFER_HOST_MODE=hostname
+      - SPRING_DATASOURCE_PLATFORM=mysql
+      - MYSQL_SERVICE_HOST=mysql
+      - MYSQL_SERVICE_PORT=3306
+      - MYSQL_SERVICE_DB_NAME=nacos_config
+      - MYSQL_SERVICE_USER=root
+      - MYSQL_SERVICE_PASSWORD=Zheng666
+      - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=10000&socketTimeout=30000&autoReconnect=true&useSSL=false&serverTimezone=Asia/Shanghai
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+      - "9849:9849"
+      - "8080:8080"  # Nacos 3.x 控制台端口
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: always
+    networks:
+      - elderly-network
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: elderly-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=Zheng666
+      - MYSQL_DATABASE=nacos_config
+    ports:
+      - "13306:3306"
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+      - ./init-sql:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pZheng666"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: always
+    networks:
+      - elderly-network
+  # Redis
+  redis:
+    image: redis:7.0
+    container_name: elderly-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis-data:/data
+    restart: always
+    networks:
+      - elderly-network
+  # Sentinel 控制台（暂时禁用 - 镜像拉取失败）
+  # sentinel:
+  #   image: bladex/sentinel-dashboard:1.8.6
+  #   container_name: elderly-sentinel
+  #   ports:
+  #     - "8858:8858"
+  #   environment:
+  #     - JAVA_OPTS=-Dserver.port=8858 -Dcsp.sentinel.dashboard.server=localhost:8858 -Dproject.name=sentinel-dashboard -Dsentinel.dashboard.auth.username=sentinel -Dsentinel.dashboard.auth.password=sentinel
+  #   restart: always
+  #   networks:
+  #     - elderly-network
+networks:
+  elderly-network:
+    driver: bridge

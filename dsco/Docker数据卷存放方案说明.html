@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker数据卷存放方案说明</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", "SimSun", Arial, sans-serif;
+            line-height: 1.8;
+            margin: 40px;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+        }
+        h3 {
+            color: #16a085;
+            margin-top: 20px;
+        }
+        .info-box {
+            background-color: #d5edff;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .danger-box {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: "Courier New", monospace;
+            color: #e74c3c;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        .recommend {
+            background-color: #d4edda;
+            border: 2px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .recommend h3 {
+            color: #28a745;
+            margin-top: 0;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #ddd;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Docker数据卷存放方案说明</h1>
+    
+    <div class="info-box">
+        <strong>问题背景：</strong><br>
+        项目中存在 <code>mysql-data</code> 和 <code>redis-data</code> 两个目录，用于存储 Docker 容器的持久化数据。
+        本文档分析两种存放方案的优缺点，并给出最佳实践建议。
+    </div>
+
+    <h2>一、当前方案：存放在项目目录内</h2>
+    
+    <h3>1.1 配置方式</h3>
+    <pre># docker-compose.yml
+volumes:
+  - ./mysql-data:/var/lib/mysql
+  - ./redis-data:/data</pre>
+
+    <h3>1.2 目录结构</h3>
+    <pre>elderly_care_cloud/
+├── mysql-data/          # MySQL数据目录
+│   ├── db_elderly_*/
+│   ├── ibdata1
+│   └── ...
+├── redis-data/          # Redis数据目录
+├── src/
+├── pom.xml
+└── docker-compose.yml</pre>
+
+    <h3>1.3 优点</h3>
+    <table>
+        <tr>
+            <th>序号</th>
+            <th>优点</th>
+            <th>说明</th>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>项目自包含</td>
+            <td>所有数据都在项目内，便于整体管理</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>快速启动</td>
+            <td>克隆项目后直接 <code>docker-compose up</code> 即可</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>多项目隔离</td>
+            <td>每个项目的数据独立，互不干扰</td>
+        </tr>
+        <tr>
+            <td>4</td>
+            <td>便于开发调试</td>
+            <td>可以直接查看和备份数据文件</td>
+        </tr>
+    </table>
+
+    <h3>1.4 缺点</h3>
+    <table>
+        <tr>
+            <th>序号</th>
+            <th>缺点</th>
+            <th>说明</th>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>目录混乱</td>
+            <td>数据目录混在源代码中，不够清晰</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>误提交风险</td>
+            <td>容易误提交到 Git（需配置 .gitignore）</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>项目体积大</td>
+            <td>数据文件可能导致项目目录体积变大</td>
+        </tr>
+        <tr>
+            <td>4</td>
+            <td>分散管理</td>
+            <td>多个项目会有多个数据目录，不便于统一管理</td>
+        </tr>
+    </table>
+
+    <h2>二、替代方案：统一存放在固定目录</h2>
+    
+    <h3>2.1 配置方式</h3>
+    <pre># docker-compose.yml
+volumes:
+  - /data/docker-volumes/elderly_care/mysql-data:/var/lib/mysql
+  - /data/docker-volumes/elderly_care/redis-data:/data</pre>
+
+    <h3>2.2 目录结构</h3>
+    <pre># 宿主机统一数据目录
+/data/docker-volumes/
+├── elderly_care/           # 当前项目
+│   ├── mysql-data/
+│   └── redis-data/
+├── project_a/             # 其他项目
+│   ├── mysql-data/
+│   └── redis-data/
+└── project_b/
+    ├── mysql-data/
+    └── redis-data/
+
+# 项目目录（干净）
+elderly_care_cloud/
+├── src/
+├── pom.xml
+└── docker-compose.yml     # 不包含数据目录</pre>
+
+    <h3>2.3 优点</h3>
+    <table>
+        <tr>
+            <th>序号</th>
+            <th>优点</th>
+            <th>说明</th>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>统一管理</td>
+            <td>所有项目的数据集中在一个位置，便于备份和监控</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>项目目录干净</td>
+            <td>项目目录只包含源代码，结构清晰</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>避免误提交</td>
+            <td>数据目录在项目外，不会提交到 Git</td>
+        </tr>
+        <tr>
+            <td>4</td>
+            <td>磁盘管理方便</td>
+            <td>可将数据目录单独挂载到数据盘</td>
+        </tr>
+        <tr>
+            <td>5</td>
+            <td>符合生产规范</td>
+            <td>符合生产环境的最佳实践</td>
+        </tr>
+    </table>
+
+    <h3>2.4 缺点</h3>
+    <table>
+        <tr>
+            <th>序号</th>
+            <th>缺点</th>
+            <th>说明</th>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>需要提前创建目录</td>
+            <td>首次运行前需要手动创建数据目录</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>项目迁移复杂</td>
+            <td>迁移项目时需要单独处理数据目录</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>团队协作问题</td>
+            <td>每个开发者的路径可能不同，需要个性化配置</td>
+        </tr>
+        <tr>
+            <td>4</td>
+            <td>权限问题</td>
+            <td>可能需要处理目录权限问题（Linux环境）</td>
+        </tr>
+    </table>
+
+    <h2>三、方案对比总结</h2>
+    
+    <table>
+        <tr>
+            <th>对比项</th>
+            <th>项目内目录</th>
+            <th>统一目录</th>
+        </tr>
+        <tr>
+            <td>适用环境</td>
+            <td>开发环境</td>
+            <td>生产环境</td>
+        </tr>
+        <tr>
+            <td>启动便捷性</td>
+            <td>⭐⭐⭐⭐⭐ 直接启动</td>
+            <td>⭐⭐⭐ 需创建目录</td>
+        </tr>
+        <tr>
+            <td>项目目录整洁度</td>
+            <td>⭐⭐⭐ 混杂数据目录</td>
+            <td>⭐⭐⭐⭐⭐ 只有源代码</td>
+        </tr>
+        <tr>
+            <td>团队协作友好度</td>
+            <td>⭐⭐⭐⭐⭐ 数据隔离</td>
+            <td>⭐⭐ 路径不统一</td>
+        </tr>
+        <tr>
+            <td>数据管理便捷性</td>
+            <td>⭐⭐ 分散管理</td>
+            <td>⭐⭐⭐⭐⭐ 统一管理</td>
+        </tr>
+        <tr>
+            <td>磁盘空间管理</td>
+            <td>⭐⭐⭐ 随项目分散</td>
+            <td>⭐⭐⭐⭐⭐ 可单独挂载</td>
+        </tr>
+        <tr>
+            <td>备份恢复便捷性</td>
+            <td>⭐⭐⭐ 需进入项目目录</td>
+            <td>⭐⭐⭐⭐⭐ 统一位置备份</td>
+        </tr>
+    </table>
+
+    <h2>四、最佳实践建议</h2>
+
+    <div class="recommend">
+        <h3>✅ 推荐方案：根据环境选择不同策略</h3>
+        
+        <h4>开发环境：使用项目内目录（当前方案）</h4>
+        <pre># docker-compose.yml
+volumes:
+  - ./mysql-data:/var/lib/mysql
+  - ./redis-data:/data</pre>
+        
+        <p><strong>理由：</strong></p>
+        <ul>
+            <li>便于团队协作，每个开发者数据独立</li>
+            <li>快速启动，无需额外配置</li>
+            <li>便于重置开发环境（删除目录即可）</li>
+        </ul>
+        
+        <h4>生产环境：使用统一目录</h4>
+        <pre># docker-compose.yml
+volumes:
+  - /data/docker-volumes/elderly_care/mysql-data:/var/lib/mysql
+  - /data/docker-volumes/elderly_care/redis-data:/data</pre>
+        
+        <p><strong>理由：</strong></p>
+        <ul>
+            <li>便于运维管理和监控</li>
+            <li>可单独挂载数据盘</li>
+            <li>便于统一备份策略</li>
+        </ul>
+    </div>
+
+    <h2>五、优化建议（当前项目）</h2>
+
+    <h3>5.1 方案一：保持现状，优化目录结构</h3>
+    <p>将数据目录统一放到一个子目录中，使项目根目录更整洁：</p>
+    
+    <pre># docker-compose.yml
+volumes:
+  - ./.docker-data/mysql-data:/var/lib/mysql
+  - ./.docker-data/redis-data:/data</pre>
+    
+    <p>目录结构：</p>
+    <pre>elderly_care_cloud/
+├── .docker-data/        # 统一存放Docker数据
+│   ├── mysql-data/
+│   └── redis-data/
+├── src/
+├── pom.xml
+└── docker-compose.yml</pre>
+
+    <div class="success-box">
+        <strong>优点：</strong><br>
+        - 项目根目录更整洁<br>
+        - 数据目录统一管理<br>
+        - 以点开头的目录在文件管理器中默认隐藏
+    </div>
+
+    <h3>5.2 方案二：使用环境变量配置路径</h3>
+    <p>在 docker-compose.yml 中使用环境变量，支持灵活配置：</p>
+    
+    <pre># docker-compose.yml
+services:
+  mysql:
+    volumes:
+      - ${MYSQL_DATA_PATH:-./mysql-data}:/var/lib/mysql
+  
+  redis:
+    volumes:
+      - ${REDIS_DATA_PATH:-./redis-data}:/data</pre>
+    
+    <p>创建 <code>.env</code> 文件（不提交到 Git）：</p>
+    <pre># .env
+# 开发环境：使用项目内目录
+MYSQL_DATA_PATH=./mysql-data
+REDIS_DATA_PATH=./redis-data
+
+# 生产环境：使用统一目录
+# MYSQL_DATA_PATH=/data/docker-volumes/elderly_care/mysql-data
+# REDIS_DATA_PATH=/data/docker-volumes/elderly_care/redis-data</pre>
+
+    <div class="success-box">
+        <strong>优点：</strong><br>
+        - 开发和生产环境使用同一份配置文件<br>
+        - 通过环境变量灵活切换<br>
+        - 每个开发者可以自定义路径
+    </div>
+
+    <h3>5.3 必须配置 .gitignore</h3>
+    <p>无论采用哪种方案，都必须在 <code>.gitignore</code> 中排除数据目录：</p>
+    
+    <pre># .gitignore
+### Docker Data Volumes ###
+mysql-data/
+redis-data/
+.docker-data/</pre>
+
+    <div class="danger-box">
+        <strong>⚠️ 重要警告：</strong><br>
+        数据目录包含运行时数据，绝对不能提交到 Git！<br>
+        - 会导致仓库体积急剧膨胀<br>
+        - 包含敏感信息（密码、证书等）<br>
+        - 每个开发者的数据应该独立
+    </div>
+
+    <h2>六、实施步骤</h2>
+
+    <h3>6.1 优化当前项目（推荐方案一）</h3>
+    
+    <p><strong>步骤1：修改 docker-compose.yml</strong></p>
+    <pre>volumes:
+  - ./.docker-data/mysql-data:/var/lib/mysql
+  - ./.docker-data/redis-data:/data</pre>
+
+    <p><strong>步骤2：迁移数据（如果已有数据）</strong></p>
+    <pre># 停止容器
+docker-compose down
+
+# 创建新目录
+mkdir -p .docker-data
+
+# 移动数据
+mv mysql-data .docker-data/
+mv redis-data .docker-data/
+
+# 重启容器
+docker-compose up -d</pre>
+
+    <p><strong>步骤3：更新 .gitignore</strong></p>
+    <pre># .gitignore
+### Docker Data Volumes ###
+.docker-data/</pre>
+
+    <h3>6.2 生产环境部署</h3>
+    
+    <p><strong>步骤1：创建数据目录</strong></p>
+    <pre>sudo mkdir -p /data/docker-volumes/elderly_care/mysql-data
+sudo mkdir -p /data/docker-volumes/elderly_care/redis-data</pre>
+
+    <p><strong>步骤2：修改 docker-compose.yml</strong></p>
+    <pre>volumes:
+  - /data/docker-volumes/elderly_care/mysql-data:/var/lib/mysql
+  - /data/docker-volumes/elderly_care/redis-data:/data</pre>
+
+    <p><strong>步骤3：设置权限（Linux）</strong></p>
+    <pre>sudo chown -R 999:999 /data/docker-volumes/elderly_care/mysql-data
+sudo chown -R 999:999 /data/docker-volumes/elderly_care/redis-data</pre>
+
+    <h2>七、总结</h2>
+
+    <div class="info-box">
+        <strong>核心建议：</strong><br><br>
+        <strong>开发环境：</strong>保持当前方案或优化为 <code>.docker-data</code> 目录<br>
+        - 便于团队协作和快速启动<br>
+        - 必须配置 .gitignore 排除数据目录<br><br>
+        
+        <strong>生产环境：</strong>使用统一的数据目录<br>
+        - 便于运维管理和备份<br>
+        - 可单独挂载数据盘<br><br>
+        
+        <strong>关键原则：</strong><br>
+        - 数据目录永远不要提交到 Git<br>
+        - 开发和生产环境可以使用不同的配置<br>
+        - 定期备份重要数据
+    </div>
+
+    <div class="footer">
+        <p>文档生成时间：2026年5月24日</p>
+        <p>项目：elderly_care_cloud（智慧养老云平台）</p>
+        <p>作者：郑</p>
+    </div>
+</body>
+</html>
