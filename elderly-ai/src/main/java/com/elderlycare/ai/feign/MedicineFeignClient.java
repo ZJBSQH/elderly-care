@@ -17,7 +17,7 @@ import java.util.Map;
  *
  * @author 郑
  */
-@FeignClient(name = "elderly-medicine")
+@FeignClient(name = "elderly-medicine", configuration = com.elderlycare.ai.config.FeignConfig.class)
 public interface MedicineFeignClient {
 
     /**

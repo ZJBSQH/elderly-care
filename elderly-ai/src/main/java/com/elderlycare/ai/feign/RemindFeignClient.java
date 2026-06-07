@@ -15,7 +15,7 @@ import java.util.Map;
  *
  * @author 郑
  */
-@FeignClient(name = "elderly-remind")
+@FeignClient(name = "elderly-remind", configuration = com.elderlycare.ai.config.FeignConfig.class)
 public interface RemindFeignClient {
 
     /**
