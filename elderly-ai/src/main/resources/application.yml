@@ -29,4 +29,35 @@ langchain4j:
       streaming-chat-model:
         api-key: ${AI_DASHSCOPE_API_KEY}
         model-name: qwen3.6-flash
+      embedding-model:
+        api-key: ${AI_DASHSCOPE_API_KEY}
+        model-name: text-embedding-v3
+        # text-embedding-v3 支持指定维度: 1536/1024/768/512/256/128/64
+        dimensions: 1024
+        timeout: 30s
+        log-requests: false
+        log-responses: false
+
+# ═══════════════════════════════════════════
+# RAG 增强检索生成配置（自定义）
+# ═══════════════════════════════════════════
+elderly:
+  rag:
+    # 文档切分配置
+    chunk:
+      max-size: 500            # 最大字符数
+      max-overlap: 50          # 重叠字符数
+    # 检索配置
+    retrieval:
+      max-results: 5           # 默认检索 Top-K
+      min-score: 0.65          # 最低相似度阈值（COSINE）
+    # 向量存储配置
+    embedding-store:
+      index-name: idx_rag_docs # Redis RediSearch 索引名
+      prefix: "rag:doc:"         # Key 前缀
+      dimension: 1024          # 向量维度（与嵌入模型一致）
+    # 知识库配置
+    knowledge-base:
+      allowed-types: txt,md,json
+      max-file-size: 5MB
 

@@ -14,23 +14,21 @@ USE `db_elderly_admin`;
 -- ----------------------------
 -- Table: system_config (系统配置表)
 -- ----------------------------
-DROP TABLE IF EXISTS `system_config`;
-CREATE TABLE `system_config` (
+CREATE TABLE IF NOT EXISTS `system_config` (
   `id`           INT          NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
   `config_key`   VARCHAR(100) NOT NULL COMMENT '配置键 (如 site_name)',
   `config_value` TEXT         NULL     COMMENT '配置值',
   `description`  VARCHAR(255) NULL     DEFAULT NULL COMMENT '配置描述',
+  `create_time`  DATETIME     NULL     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time`  DATETIME     NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `config_key` (`config_key`) USING BTREE,
-  INDEX `idx_config_key` (`config_key`) USING BTREE
+  UNIQUE INDEX `uk_config_key` (`config_key`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统配置表';
 
 -- ----------------------------
 -- Table: disease (疾病字典表)
 -- ----------------------------
-DROP TABLE IF EXISTS `disease`;
-CREATE TABLE `disease` (
+CREATE TABLE IF NOT EXISTS `disease` (
   `id`           INT          NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
   `disease_name` VARCHAR(100) NOT NULL COMMENT '疾病名称',
   `category`     VARCHAR(50)  NULL     DEFAULT NULL COMMENT '疾病分类',

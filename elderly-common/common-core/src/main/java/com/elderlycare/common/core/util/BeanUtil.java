@@ -23,6 +23,17 @@ public class BeanUtil {
         BeanUtils.copyProperties(source, target, getNullPropertyNames(source));
     }
 
+    /**
+     * 全量复制属性（包含 null 值）
+     */
+    public static void copyProperties(Object source, Object target) {
+        if (source == null || target == null) {
+            return;
+        }
+        BeanUtils.copyProperties(source, target);
+    }
+
+    /** 获取对象中值为 null 的属性名数组 */
     private static String[] getNullPropertyNames(Object source) {
         final BeanWrapper srcWrapper = new BeanWrapperImpl(source);
         PropertyDescriptor[] pds = srcWrapper.getPropertyDescriptors();

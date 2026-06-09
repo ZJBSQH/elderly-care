@@ -45,8 +45,8 @@ export function getMedicineRecord(params) {
 /**
  * 标记已服用
  */
-export function takeMedicine(taskId) {
-  return request('/record/take', { method: 'POST', data: { taskId } })
+export function takeMedicine(taskId, elderId) {
+  return request('/record/take', { method: 'POST', data: { taskId, elderId } })
 }
 
 /**
@@ -59,8 +59,8 @@ export function checkRecord(taskId) {
 /**
  * 标记漏服
  */
-export function markMissed(taskId) {
-  return request('/record/missed', { method: 'POST', data: { taskId } })
+export function markMissed(taskId, elderId) {
+  return request('/record/missed', { method: 'POST', data: { taskId, elderId } })
 }
 
 /**

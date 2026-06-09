@@ -2,6 +2,7 @@ package com.elderlycare.news.service.impl;
 
 import com.elderlycare.common.core.exception.BusinessException;
 import com.elderlycare.common.core.result.Result;
+import com.elderlycare.common.core.util.BeanUtil;
 import com.elderlycare.common.security.util.SecurityUtil;
 import com.elderlycare.news.dto.CollectRequest;
 import com.elderlycare.news.dto.LikeRequest;
@@ -26,9 +27,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.elderlycare.news.dto.NewsErrorCode.*;
@@ -43,17 +46,29 @@ import static com.elderlycare.news.dto.NewsErrorCode.*;
 @RequiredArgsConstructor
 public class NewsServiceImpl implements NewsService {
 
+    /** 推荐文章Redis缓存键 */
     private static final String REDIS_RECOMMENDED_KEY = "news:recommended";
+    /** 热门文章Redis缓存键 */
     private static final String REDIS_POPULAR_KEY = "news:popular";
+    /** Redis缓存过期时间 */
     private static final Duration REDIS_CACHE_EXPIRE = Duration.ofMinutes(30);
 
+    /** 资讯文章Mapper */
     private final NewsMapper newsMapper;
+    /** 点赞记录Mapper */
     private final NewsLikeMapper newsLikeMapper;
+    /** 收藏记录Mapper */
     private final NewsCollectMapper newsCollectMapper;
+    /** Redis模板 */
     private final StringRedisTemplate redisTemplate;
+    /** 安全工具 */
     private final SecurityUtil securityUtil;
+    /** JSON序列化工具 */
     private final ObjectMapper objectMapper;
 
+    /**
+     * 发布文章
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> publishArticle(NewsAddRequest request) {
@@ -78,6 +93,9 @@ public class NewsServiceImpl implements NewsService {
         return Result.success();
     }
 
+    /**
+     * 更新文章
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> updateArticle(NewsUpdateRequest request) {
@@ -86,30 +104,16 @@ public class NewsServiceImpl implements NewsService {
             throw new BusinessException(NEWS_NOT_EXIST);
         }
 
-        if (request.getTitle() != null) {
-            news.setTitle(request.getTitle());
-        }
-        if (request.getContent() != null) {
-            news.setContent(request.getContent());
-        }
-        if (request.getSummary() != null) {
-            news.setSummary(request.getSummary());
-        }
-        if (request.getCategory() != null) {
-            news.setCategory(request.getCategory());
-        }
-        if (request.getCoverImage() != null) {
-            news.setCoverImage(request.getCoverImage());
-        }
-        if (request.getStatus() != null) {
-            news.setStatus(request.getStatus());
-        }
+        BeanUtil.copyNonNullProperties(request, news);
 
         newsMapper.updateById(news);
         log.info("文章{}更新成功", request.getId());
         return Result.success();
     }
 
+    /**
+     * 删除文章
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> deleteArticle(Integer id) {
@@ -123,6 +127,9 @@ public class NewsServiceImpl implements NewsService {
         return Result.success();
     }
 
+    /**
+     * 获取文章详情（含点赞/收藏状态）
+     */
     @Override
     public Result<Map<String, Object>> getArticleDetail(Integer id) {
         News news = newsMapper.selectById(id);
@@ -130,9 +137,9 @@ public class NewsServiceImpl implements NewsService {
             throw new BusinessException(NEWS_NOT_EXIST);
         }
 
-        // 增加浏览次数
+        // 原子增加浏览次数
+        newsMapper.incrementViewCount(id);
         news.setViewCount(news.getViewCount() + 1);
-        newsMapper.updateById(news);
 
         Integer userId = securityUtil.getCurrentUserId();
         Map<String, Object> result = new HashMap<>();
@@ -148,6 +155,9 @@ public class NewsServiceImpl implements NewsService {
         return Result.success(result);
     }
 
+    /**
+     * 根据分类查询文章列表
+     */
     @Override
     public Result<List<HealthKnowledgeVO>> getArticlesByCategory(String category) {
         List<News> newsList = newsMapper.selectByCategory(category);
@@ -155,6 +165,9 @@ public class NewsServiceImpl implements NewsService {
         return Result.success(voList);
     }
 
+    /**
+     * 获取推荐文章列表（优先从Redis缓存读取）
+     */
     @Override
     public Result<List<HealthKnowledgeVO>> getRecommendedArticles() {
         // 先尝试从 Redis 缓存中获取
@@ -185,6 +198,9 @@ public class NewsServiceImpl implements NewsService {
         return Result.success(voList);
     }
 
+    /**
+     * 获取热门文章列表（优先从Redis缓存读取）
+     */
     @Override
     public Result<List<HealthKnowledgeVO>> getPopularArticles() {
         // 先尝试从 Redis 缓存中获取
@@ -215,6 +231,9 @@ public class NewsServiceImpl implements NewsService {
         return Result.success(voList);
     }
 
+    /**
+     * 关键词搜索文章
+     */
     @Override
     public Result<List<HealthKnowledgeVO>> searchArticles(String keyword) {
         List<News> newsList = newsMapper.searchByKeyword(keyword);
@@ -222,6 +241,9 @@ public class NewsServiceImpl implements NewsService {
         return Result.success(voList);
     }
 
+    /**
+     * 点赞文章
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> likeArticle(LikeRequest request) {
@@ -246,14 +268,16 @@ public class NewsServiceImpl implements NewsService {
         like.setCreateTime(LocalDateTime.now());
         newsLikeMapper.insert(like);
 
-        // 增加文章点赞数
-        news.setLikeCount(news.getLikeCount() + 1);
-        newsMapper.updateById(news);
+        // 原子增加文章点赞数
+        newsMapper.incrementLikeCount(newsId);
 
         log.info("用户{}点赞文章{}", userId, newsId);
         return Result.success();
     }
 
+    /**
+     * 取消点赞
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> cancelLikeArticle(LikeRequest request) {
@@ -276,14 +300,16 @@ public class NewsServiceImpl implements NewsService {
                 .eq(NewsLike::getUserId, userId)
                 .eq(NewsLike::getNewsId, newsId));
 
-        // 减少文章点赞数
-        news.setLikeCount(Math.max(0, news.getLikeCount() - 1));
-        newsMapper.updateById(news);
+        // 原子减少文章点赞数
+        newsMapper.decrementLikeCount(newsId);
 
         log.info("用户{}取消点赞文章{}", userId, newsId);
         return Result.success();
     }
 
+    /**
+     * 检查是否已点赞
+     */
     @Override
     public Result<Boolean> checkIfLiked(Integer newsId) {
         Integer userId = securityUtil.getCurrentUserId();
@@ -291,6 +317,9 @@ public class NewsServiceImpl implements NewsService {
         return Result.success(exists);
     }
 
+    /**
+     * 收藏文章
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> collectArticle(CollectRequest request) {
@@ -315,14 +344,16 @@ public class NewsServiceImpl implements NewsService {
         collect.setCreateTime(LocalDateTime.now());
         newsCollectMapper.insert(collect);
 
-        // 增加文章收藏数
-        news.setCollectCount(news.getCollectCount() + 1);
-        newsMapper.updateById(news);
+        // 原子增加文章收藏数
+        newsMapper.incrementCollectCount(newsId);
 
         log.info("用户{}收藏文章{}", userId, newsId);
         return Result.success();
     }
 
+    /**
+     * 取消收藏
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> cancelCollectArticle(CollectRequest request) {
@@ -345,14 +376,16 @@ public class NewsServiceImpl implements NewsService {
                 .eq(NewsCollect::getUserId, userId)
                 .eq(NewsCollect::getNewsId, newsId));
 
-        // 减少文章收藏数
-        news.setCollectCount(Math.max(0, news.getCollectCount() - 1));
-        newsMapper.updateById(news);
+        // 原子减少文章收藏数
+        newsMapper.decrementCollectCount(newsId);
 
         log.info("用户{}取消收藏文章{}", userId, newsId);
         return Result.success();
     }
 
+    /**
+     * 获取用户收藏列表
+     */
     @Override
     public Result<List<HealthKnowledgeVO>> getUserCollects() {
         Integer userId = securityUtil.getCurrentUserId();
@@ -371,6 +404,9 @@ public class NewsServiceImpl implements NewsService {
         return Result.success(voList);
     }
 
+    /**
+     * 检查是否已收藏
+     */
     @Override
     public Result<Boolean> checkIfCollected(Integer newsId) {
         Integer userId = securityUtil.getCurrentUserId();
@@ -379,7 +415,7 @@ public class NewsServiceImpl implements NewsService {
     }
 
     /**
-     * 将 News 实体列表转换为 HealthKnowledgeVO 列表
+     * 将 News 实体列表转换为 HealthKnowledgeVO 列表（批量查询点赞/收藏状态，避免N+1）
      */
     private List<HealthKnowledgeVO> convertToVOList(List<News> newsList) {
         if (newsList == null || newsList.isEmpty()) {
@@ -387,30 +423,54 @@ public class NewsServiceImpl implements NewsService {
         }
 
         Integer userId = securityUtil.getCurrentUserId();
+        List<Integer> newsIds = newsList.stream().map(News::getId).collect(Collectors.toList());
+
+        // 批量查询点赞和收藏状态
+        Set<Integer> likedNewsIds = userId != null ? newsLikeMapper.selectLikedNewsIds(userId, newsIds) : Collections.emptySet();
+        Set<Integer> collectedNewsIds = userId != null ? newsCollectMapper.selectCollectedNewsIds(userId, newsIds) : Collections.emptySet();
 
         return newsList.stream().map(news -> {
             HealthKnowledgeVO vo = new HealthKnowledgeVO();
-            vo.setId(news.getId());
-            vo.setTitle(news.getTitle());
-            vo.setSummary(news.getSummary());
-            vo.setCategory(news.getCategory());
-            vo.setCoverImage(news.getCoverImage());
-            vo.setViewCount(news.getViewCount());
-            vo.setIsRecommended(news.getIsRecommended());
-            vo.setPublishTime(news.getPublishTime());
-            vo.setLikeCount(news.getLikeCount());
-            vo.setCollectCount(news.getCollectCount());
-
-            // 设置当前用户的点赞和收藏状态
-            if (userId != null) {
-                vo.setIsLiked(newsLikeMapper.existsByUserAndNews(userId, news.getId()));
-                vo.setIsCollected(newsCollectMapper.existsByUserAndNews(userId, news.getId()));
-            } else {
-                vo.setIsLiked(false);
-                vo.setIsCollected(false);
-            }
-
+            BeanUtil.copyProperties(news, vo);
+            vo.setIsLiked(userId != null && likedNewsIds.contains(news.getId()));
+            vo.setIsCollected(userId != null && collectedNewsIds.contains(news.getId()));
             return vo;
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * 获取用于 RAG 知识库同步的文章列表（含正文全文）
+     * <p>
+     * 查询所有已上架文章，支持按分类过滤。
+     * 与普通列表接口不同，此方法返回正文全文 content，供向量嵌入使用。
+     *
+     * @param category 分类过滤（可选）
+     * @return 文章完整数据列表
+     */
+    @Override
+    public Result<List<Map<String, Object>>> getArticlesForSync(String category) {
+        List<News> newsList;
+        if (category != null && !category.isEmpty()) {
+            newsList = newsMapper.selectByCategory(category);
+        } else {
+            // 查询所有已上架文章
+            newsList = newsMapper.selectList(
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<News>()
+                            .eq(News::getStatus, 1)
+                            .orderByDesc(News::getPublishTime));
+        }
+
+        List<Map<String, Object>> result = newsList.stream().map(news -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", news.getId());
+            map.put("title", news.getTitle());
+            map.put("content", news.getContent());
+            map.put("category", news.getCategory());
+            map.put("summary", news.getSummary());
+            return map;
+        }).collect(Collectors.toList());
+
+        log.info("RAG 同步查询: category={}, 共 {} 篇文章", category, result.size());
+        return Result.success(result);
     }
 }

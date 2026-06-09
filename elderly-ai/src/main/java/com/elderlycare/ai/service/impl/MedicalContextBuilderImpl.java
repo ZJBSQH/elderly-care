@@ -34,6 +34,11 @@ public class MedicalContextBuilderImpl implements MedicalContextBuilder {
 
         log.info("构建上下文({})", elderId);
 
+        // 无 elderId 时跳过 Feign 调用，直接返回空上下文
+        if (elderId == null) {
+            return "（无个人数据）";
+        }
+
         //使用LinkedHashMap保存数据
         Map<String,Object> contextMap = new LinkedHashMap<>();
 

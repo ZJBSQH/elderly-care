@@ -18,6 +18,9 @@ public enum UserErrorCode implements ErrorCode {
     FAMILY_ALREADY_BOUND(3005, "已绑定该老人"),
     FAMILY_NOT_BOUND(3006, "未绑定该老人");
 
+    /** 错误码 */
     private final Integer code;
+
+    /** 错误描述 */
     private final String message;
 }

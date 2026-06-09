@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>老年护理云平台 — RAG 增强检索生成设计文档</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-light: #eff6ff;
+            --border: #e2e8f0;
+            --bg: #f8fafc;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --code-bg: #1e293b;
+            --code-text: #e2e8f0;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --radius: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.8;
+            font-size: 15px;
+        }
+
+        /* ── 侧边栏 ── */
+        nav {
+            position: fixed;
+            left: 0; top: 0; bottom: 0;
+            width: 260px;
+            background: #fff;
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 24px 16px;
+            z-index: 100;
+        }
+        nav h2 {
+            font-size: 15px;
+            color: var(--primary);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--primary);
+        }
+        nav a {
+            display: block;
+            padding: 6px 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+        nav a:hover { background: var(--primary-light); color: var(--primary); }
+        nav a.h2 { font-weight: 600; margin-top: 12px; color: var(--text); }
+        nav a.h3 { padding-left: 24px; }
+
+        /* ── 主体 ── */
+        main {
+            margin-left: 260px;
+            max-width: 960px;
+            padding: 40px 56px;
+        }
+
+        h1 {
+            font-size: 32px;
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 16px;
+            margin-bottom: 8px;
+        }
+        h2 {
+            font-size: 22px;
+            margin-top: 48px;
+            margin-bottom: 16px;
+            padding: 8px 14px;
+            border-left: 4px solid var(--primary);
+            background: var(--primary-light);
+            border-radius: 0 6px 6px 0;
+        }
+        h3 {
+            font-size: 18px;
+            margin-top: 32px;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+        h4 {
+            font-size: 15px;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+        p { margin-bottom: 12px; }
+        ul, ol { margin: 8px 0 16px 24px; }
+        li { margin-bottom: 4px; }
+
+        /* ── 表格 ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            text-align: left;
+        }
+        th {
+            background: var(--primary-light);
+            font-weight: 600;
+            color: var(--primary);
+        }
+        tr:nth-child(even) { background: #fafafa; }
+
+        /* ── 代码块 ── */
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 18px 22px;
+            border-radius: var(--radius);
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.7;
+            margin: 16px 0;
+        }
+        code {
+            font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas", monospace;
+        }
+        :not(pre) > code {
+            background: #f1f5f9;
+            color: #e11d48;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+
+        /* ── 信息框 ── */
+        .info-box {
+            border-left: 4px solid var(--primary);
+            background: var(--primary-light);
+            padding: 14px 18px;
+            margin: 16px 0;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            font-size: 14px;
+        }
+        .warn-box {
+            border-left: 4px solid var(--warning);
+            background: #fffbeb;
+            padding: 14px 18px;
+            margin: 16px 0;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            font-size: 14px;
+        }
+        .success-box {
+            border-left: 4px solid var(--success);
+            background: #f0fdf4;
+            padding: 14px 18px;
+            margin: 16px 0;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            font-size: 14px;
+        }
+
+        /* ── 架构图 ── */
+        .arch-diagram {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px 20px;
+            margin: 20px 0;
+            overflow-x: auto;
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre;
+        }
+
+        /* ── 元信息 ── */
+        .meta {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        .meta span { margin-right: 20px; }
+
+        /* ── 标签 ── */
+        .tag {
+            display: inline-block;
+            background: #e2e8f0;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-right: 6px;
+            color: var(--text-secondary);
+        }
+        .tag.blue { background: #dbeafe; color: #1d4ed8; }
+        .tag.green { background: #dcfce7; color: #16a34a; }
+        .tag.orange { background: #fef3c7; color: #b45309; }
+
+        /* ── 响应式 ── */
+        @media (max-width: 900px) {
+            nav { display: none; }
+            main { margin-left: 0; padding: 24px; }
+        }
+
+        /* 打印样式 */
+        @media print {
+            nav { display: none; }
+            main { margin-left: 0; max-width: 100%; }
+            h2 { break-before: page; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ════════════════ 侧边导航 ════════════════ -->
+<nav>
+    <h2>📋 文档目录</h2>
+    <a href="#1-overview" class="h2">1. 概述与目标</a>
+    <a href="#1-1" class="h3">1.1 背景</a>
+    <a href="#1-2" class="h3">1.2 目标</a>
+    <a href="#2-arch" class="h2">2. 总体架构</a>
+    <a href="#2-1" class="h3">2.1 架构全景图</a>
+    <a href="#2-2" class="h3">2.2 RAG 核心流程</a>
+    <a href="#3-tech" class="h2">3. 技术选型</a>
+    <a href="#3-1" class="h3">3.1 嵌入模型</a>
+    <a href="#3-2" class="h3">3.2 向量数据库</a>
+    <a href="#3-3" class="h3">3.3 框架整合</a>
+    <a href="#4-detail" class="h2">4. 详细设计</a>
+    <a href="#4-1" class="h3">4.1 知识文档结构</a>
+    <a href="#4-2" class="h3">4.2 文档摄取管道</a>
+    <a href="#4-3" class="h3">4.3 向量检索器</a>
+    <a href="#4-4" class="h3">4.4 RAG 增强问答</a>
+    <a href="#4-5" class="h3">4.5 知识库管理 API</a>
+    <a href="#4-6" class="h3">4.6 Redis Schema 设计</a>
+    <a href="#5-config" class="h2">5. 配置方案</a>
+    <a href="#5-1" class="h3">5.1 Maven 依赖</a>
+    <a href="#5-2" class="h3">5.2 application.yml</a>
+    <a href="#5-3" class="h3">5.3 Docker 变更</a>
+    <a href="#6-class" class="h2">6. 类设计清单</a>
+    <a href="#7-flow" class="h2">7. 数据流示例</a>
+    <a href="#7-1" class="h3">7.1 文档入库流程</a>
+    <a href="#7-2" class="h3">7.2 知识问答流程</a>
+    <a href="#8-risk" class="h2">8. 风险与注意事项</a>
+</nav>
+
+<!-- ════════════════ 正文 ════════════════ -->
+<main>
+
+<h1>🐘 老年护理云平台 — RAG 增强检索生成</h1>
+<p class="meta">
+    <span>📅 版本：v1.0</span>
+    <span>📆 日期：2026-06-07</span>
+    <span>✍️ 作者：郑</span>
+    <span>📦 模块：elderly-ai</span>
+</p>
+
+<div class="info-box">
+    <strong>文档摘要：</strong>本文档描述基于 <strong>阿里云通义千问 (DashScope)</strong> 嵌入模型 +
+    <strong>Redis Stack (RediSearch)</strong> 向量数据库的 RAG 增强检索生成方案。
+    方案在现有 <code>elderly-ai</code> 模块基础上扩展，集成 LangChain4j 框架，
+    为平台的 AI 助手赋予医学知识库检索能力，提升用药建议、健康问答的准确性和专业性。
+</div>
+
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="1-overview">1. 概述与目标</h2>
+
+<h3 id="1-1">1.1 背景</h3>
+
+<p>
+    当前 <code>elderly-ai</code> 模块已实现基于千问的流式 AI 问答（<code>AssistantController</code>），
+    每次请求通过 <code>MedicalContextBuilder</code> 实时拉取用户的用药数据、提醒任务作为上下文，
+    再交给大模型生成回答。这种模式存在以下局限：
+</p>
+
+<ul>
+    <li><strong>缺乏专业医学知识库：</strong>模型仅依赖自身训练数据，对药品相互作用、禁忌症等专业问题回答不够精准</li>
+    <li><strong>上下文窗口有限：</strong>所有数据塞入 prompt，数据量大时超出 token 限制</li>
+    <li><strong>知识无法沉淀：</strong>平台积累的护理经验、用药指南等无法被 AI 有效利用</li>
+    <li><strong>幻觉风险：</strong>大模型可能对不了解的药品"编造"信息</li>
+</ul>
+
+<h3 id="1-2">1.2 目标</h3>
+
+<table>
+    <tr><th style="width:40px">#</th><th>目标</th><th style="width:100px">优先级</th></tr>
+    <tr>
+        <td>1</td>
+        <td>建立医学知识向量库，支持药品说明书、护理指南、健康知识的语义检索</td>
+        <td><span class="tag green">P0 核心</span></td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td>RAG 增强问答：检索相关文档片段 → 注入 prompt → 生成更精准的回答</td>
+        <td><span class="tag green">P0 核心</span></td>
+    </tr>
+    <tr>
+        <td>3</td>
+        <td>知识库管理 API：支持文档的上传、删除、更新、列表查询</td>
+        <td><span class="tag blue">P1 重要</span></td>
+    </tr>
+    <tr>
+        <td>4</td>
+        <td>支持增量索引：新增/更新文档时自动重新嵌入并更新向量库</td>
+        <td><span class="tag blue">P1 重要</span></td>
+    </tr>
+    <tr>
+        <td>5</td>
+        <td>检索结果可追溯：返回引用来源，增强用户信任</td>
+        <td><span class="tag orange">P2 优化</span></td>
+    </tr>
+</table>
+
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="2-arch">2. 总体架构</h2>
+
+<h3 id="2-1">2.1 架构全景图</h3>
+
+<div class="arch-diagram">
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           👤 用户 (uni-app / H5)                         │
+└─────────────────────────────────┬───────────────────────────────────────┘
+                                  │ SSE / HTTP
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       🌐 elderly-gateway :8080                           │
+│                       JWT 校验 → X-User-Id 头部                          │
+└─────────────────────────────────┬───────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    🧠 elderly-ai :8087  (本模块)                          │
+│                                                                          │
+│   ┌──────────────────┐   ┌──────────────────┐   ┌──────────────────┐   │
+│   │ AssistantController│   │RagAssistantCtrl │   │KnowledgeBaseCtrl │   │
+│   │  /ai/medicine/*   │   │  /ai/rag/*       │   │  /ai/kb/*        │   │
+│   └────────┬─────────┘   └────────┬─────────┘   └────────┬─────────┘   │
+│            │                      │                       │              │
+│   ┌────────▼──────────────────────▼───────────────────────▼─────────┐   │
+│   │                         Service 层                               │   │
+│   │  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐    │   │
+│   │  │MedicalAssistant│  │ RagService     │  │KnowledgeService│    │   │
+│   │  │ (LangChain4j)  │  │ (检索+增强生成) │  │ (文档管理)      │    │   │
+│   │  └───────┬────────┘  └───────┬────────┘  └───────┬────────┘    │   │
+│   └──────────┼───────────────────┼───────────────────┼──────────────┘   │
+│              │                   │                   │                   │
+│   ┌──────────▼───────────────────▼───────────────────▼──────────────┐   │
+│   │                      LangChain4j 集成层                          │   │
+│   │  ┌──────────────────┐  ┌──────────────────────────────────┐    │   │
+│   │  │DashScopeEmbedding│  │  RedisEmbeddingStore             │    │   │
+│   │  │ (千问 text-embed │  │  (Redis Stack 向量存储)           │    │   │
+│   │  │  ding-v3)        │  │                                  │    │   │
+│   │  └──────────────────┘  └──────────────────────────────────┘    │   │
+│   └─────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+              │                                       │
+              │ Feign (OpenFeign)                     │ Redis Protocol
+              ▼                                       ▼
+┌──────────────────────────┐          ┌──────────────────────────┐
+│ medicine / remind 服务    │          │   Redis Stack :6379       │
+│ (现有业务数据)            │          │   ┌──────────────────┐   │
+└──────────────────────────┘          │   │ RediSearch 模块   │   │
+                                      │   │ (KNN 向量检索)    │   │
+                                      │   │                  │   │
+                                      │   │ Key 前缀:        │   │
+                                      │   │ rag:doc:{id}     │   │
+                                      │   │ rag:idx:v1       │   │
+                                      │   └──────────────────┘   │
+                                      └──────────────────────────┘
+</div>
+
+<h3 id="2-2">2.2 RAG 核心流程</h3>
+
+<div class="arch-diagram">
+                     ┌─── 离线阶段（文档入库）───┐
+                     │                           │
+    📄 医学文档       │    🔢 向量嵌入            │    💾 向量存储
+   (药品说明书,      │   DashScope             │   Redis Stack
+    护理指南,        │   text-embedding-v3     │   FT.SEARCH (KNN)
+    健康知识)        │   1536维向量             │
+        │            │        │                 │        │
+        ▼            │        ▼                 │        ▼
+   ┌─────────┐       │   ┌─────────┐           │   ┌─────────┐
+   │ 文档切分 │───────┼──▶│ 嵌入模型 │───────────┼──▶│ 索引存储 │
+   │ Chunking │       │   │         │           │   │         │
+   └─────────┘       │   └─────────┘           │   └─────────┘
+                     │                           │
+                     └───────────────────────────┘
+
+                     ┌─── 在线阶段（知识问答）───┐
+                     │                           │
+    ❓ 用户问题       │    🔢 问题向量化          │    📚 相似检索
+   "布洛芬可以和     │   同一嵌入模型            │   Redis KNN
+    阿司匹林一起     │   保证向量空间一致         │   Top-K = 5
+    吃吗？"          │        │                 │        │
+        │            │        ▼                 │        ▼
+        ▼            │   ┌─────────┐           │   ┌─────────┐
+   ┌─────────┐       │   │ 嵌入模型 │           │   │ 向量检索 │
+   │ 用户输入 │───────┼──▶│         │───────────┼──▶│         │
+   └─────────┘       │   └─────────┘           │   └────┬────┘
+                     │                           │        │
+                     │                           │  相关片段
+                     │                           │  [chunk1,chunk2,...]
+                     │                           │        │
+                     │                           │        ▼
+                     │                           │   ┌─────────┐
+                     │                           │   │ Prompt  │
+                     │                           │   │ 增强组装 │
+                     │                           │   └────┬────┘
+                     │                           │        │
+                     │                           │   System: 你是专业用药助手
+                     │                           │   参考以下知识:
+                     │                           │   [chunk1 内容]
+                     │                           │   [chunk2 内容]
+                     │                           │   用户问题: 布洛芬...
+                     │                           │        │
+                     │                           │        ▼
+                     │                           │   ┌──────────┐
+                     │                           │   │ 千问大模型│
+                     │                           │   │ 生成回答  │
+                     │                           │   └────┬─────┘
+                     │                           │        │
+                     │                           │   SSE 流式输出
+                     │                           │   + 引用来源
+                     │                           │
+                     └───────────────────────────┘
+</div>
+
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="3-tech">3. 技术选型</h2>
+
+<h3 id="3-1">3.1 嵌入模型：阿里云 DashScope text-embedding-v3</h3>
+
+<table>
+    <tr><th>属性</th><th>说明</th></tr>
+    <tr><td>模型名称</td><td><code>text-embedding-v3</code></td></tr>
+    <tr><td>提供商</td><td>阿里云灵积 DashScope（通义千问系列）</td></tr>
+    <tr><td>向量维度</td><td>1536（默认），可选 1024 / 768 / 512 / 256 / 128 / 64</td></tr>
+    <tr><td>最大输入</td><td>8192 tokens</td></tr>
+    <tr><td>中文优化</td><td>✅ 原生中文优化，医疗/药学领域表现优秀</td></tr>
+    <tr><td>集成方式</td><td>LangChain4j <code>langchain4j-community-dashscope</code> 已集成</td></tr>
+    <tr><td>计费方式</td><td>按 token 计费，约 ¥0.0007 / 1000 tokens</td></tr>
+</table>
+
+<div class="success-box">
+    <strong>✅ 已有基础：</strong>项目 <code>application.yml</code> 中已配置
+    <code>langchain4j.community.dashscope.embedding-model</code>，
+    使用 <code>text-embedding-v3</code> 模型和 API Key 环境变量 <code>AI_DASHSCOPE_API_KEY</code>。
+</div>
+
+<h3 id="3-2">3.2 向量数据库：Redis Stack (RediSearch 2.x)</h3>
+
+<table>
+    <tr><th>属性</th><th>说明</th></tr>
+    <tr><td>产品</td><td>Redis Stack Server 7.4+（含 RediSearch 模块）</td></tr>
+    <tr><td>Docker 镜像</td><td><code>redis/redis-stack-server:7.4.0-v1</code>（约 50MB）</td></tr>
+    <tr><td>检索方式</td><td>KNN (K-Nearest Neighbors) 向量相似度搜索</td></tr>
+    <tr><td>距离度量</td><td>COSINE（余弦相似度），适合语义检索</td></tr>
+    <tr><td>索引类型</td><td>FLAT (精确) / HNSW (近似，推荐)</td></tr>
+    <tr><td>优势</td><td>① 项目已使用 Redis，运维成本低 ② 毫秒级检索 ③ 支持混合检索（向量+标量过滤）</td></tr>
+    <tr><td>替代方案</td><td>Milvus（独立部署重）、Pgvector（需额外插件）、Elasticsearch（资源开销大）</td></tr>
+</table>
+
+<div class="warn-box">
+    <strong>⚠️ 注意：</strong>当前 <code>docker-compose.yml</code> 使用 <code>redis:7.0</code> 标准镜像，
+    <strong>不包含 RediSearch 模块</strong>。需要切换到 <code>redis/redis-stack-server</code> 镜像才能支持向量检索。
+    详见 <a href="#5-3">5.3 Docker 变更</a>。
+</div>
+
+<h3 id="3-3">3.3 框架整合：LangChain4j</h3>
+
+<table>
+    <tr><th>组件</th><th>LangChain4j 模块</th><th>说明</th></tr>
+    <tr>
+        <td>嵌入模型</td>
+        <td><code>langchain4j-community-dashscope</code></td>
+        <td>✅ 已集成，提供 <code>DashScopeEmbeddingModel</code></td>
+    </tr>
+    <tr>
+        <td>文档切分</td>
+        <td><code>langchain4j</code> (核心)</td>
+        <td>提供 <code>DocumentSplitter</code> 按段落/句子/固定长度切分</td>
+    </tr>
+    <tr>
+        <td>向量存储</td>
+        <td><code>langchain4j-community-redis</code></td>
+        <td>提供 <code>RedisEmbeddingStore</code>，封装 Redis Stack 向量操作</td>
+    </tr>
+    <tr>
+        <td>检索器</td>
+        <td><code>langchain4j</code> (核心)</td>
+        <td><code>EmbeddingStoreRetriever</code> 从向量库检索 Top-K 相似文档</td>
+    </tr>
+    <tr>
+        <td>AI 服务</td>
+        <td><code>langchain4j-spring-boot4-starter</code></td>
+        <td>✅ 已集成，<code>@AiService</code> 声明式 AI 代理</td>
+    </tr>
+</table>
+
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="4-detail">4. 详细设计</h2>
+
+<h3 id="4-1">4.1 知识文档结构</h3>
+
+<h4>文档分类</h4>
+
+<table>
+    <tr><th>分类</th><th>示例内容</th><th>来源</th><th>更新频率</th></tr>
+    <tr>
+        <td>📦 药品说明书</td>
+        <td>布洛芬缓释胶囊说明书、阿司匹林肠溶片说明书</td>
+        <td>药监局公开数据 / 手工录入</td>
+        <td>低频（月级）</td>
+    </tr>
+    <tr>
+        <td>🏥 护理指南</td>
+        <td>老年人用药注意事项、慢性病日常护理规范</td>
+        <td>医学指南 / 护理教材</td>
+        <td>低频（季级）</td>
+    </tr>
+    <tr>
+        <td>💊 用药安全</td>
+        <td>药品相互作用数据库、禁忌人群说明</td>
+        <td>药学数据库</td>
+        <td>中频（月级）</td>
+    </tr>
+    <tr>
+        <td>🍎 健康知识</td>
+        <td>糖尿病饮食建议、高血压运动指导</td>
+        <td>卫健部门科普 / 运营录入</td>
+        <td>中频（周级）</td>
+    </tr>
+    <tr>
+        <td>📋 平台FAQ</td>
+        <td>如何使用用药提醒、家属绑定流程</td>
+        <td>运营团队维护</td>
+        <td>高频（随时）</td>
+    </tr>
+</table>
+
+<h4>文档实体设计</h4>
+
+<pre><code>/**
+ * 知识文档实体（Java 端内存对象，非数据库实体）
+ */
+public class KnowledgeDocument {
+    /** 文档唯一标识 */
+    private String id;              // UUID
+    /** 文档标题 */
+    private String title;           // "布洛芬缓释胶囊说明书"
+    /** 文档分类 */
+    private String category;        // MEDICINE / NURSING / SAFETY / HEALTH / FAQ
+    /** 原始文本内容 */
+    private String content;         // 完整文档文本
+    /** 元数据（可扩展） */
+    private Map&lt;String, Object&gt; metadata;  // { "source": "CFDA", "drugCode": "H20013193", ... }
+    /** 创建时间 */
+    private LocalDateTime createdAt;
+    /** 更新时间 */
+    private LocalDateTime updatedAt;
+}</code></pre>
+
+<h3 id="4-2">4.2 文档摄取管道 (Ingestion Pipeline)</h3>
+
+<div class="arch-diagram">
+  📄 原始文档
+      │
+      ▼
+┌──────────────┐
+│ 1. 文档加载    │  ← KnowledgeService.loadDocument(file/url/text)
+│ DocumentLoader│     支持 TXT / Markdown / JSON / 数据库记录
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ 2. 文本切分    │  ← DocumentSplitter
+│ Chunking     │     策略: 段落切分 (ParagraphSplitter)
+│              │     每块: ~500 字符，重叠: 50 字符
+│              │     保留: 标题 + 分类元数据
+└──────┬───────┘
+       │  List&lt;TextSegment&gt;
+       ▼
+┌──────────────┐
+│ 3. 向量嵌入    │  ← DashScopeEmbeddingModel.embedAll(segments)
+│ Embedding    │     批量嵌入: 一次请求处理多个片段
+│              │     维度: 1536
+│              │     限流: 控制 QPS 避免触发 API 限制
+└──────┬───────┘
+       │  List&lt;Embedding&gt; (每个片段一个 1536 维向量)
+       ▼
+┌──────────────┐
+│ 4. 向量存储    │  ← RedisEmbeddingStore.addAll(embeddings, segments)
+│ Store        │     索引名: idx:rag_docs
+│              │     Key前缀: rag:doc:
+│              │     元数据存储: title, category, chunkIndex, source
+└──────────────┘
+       │
+       ▼
+   ✅ 入库完成，可检索
+</div>
+
+<h4>切分策略配置</h4>
+
+<pre><code>// 文档切分配置 —— 中文医学文本优化
+DocumentSplitter splitter = DocumentSplitters.recursive(
+    500,   // maxSegmentSize: 每块最大 500 字符（中文约 250 字）
+    50     // maxOverlapSize: 相邻块重叠 50 字符，保证语义连贯
+);</code></pre>
+
+<h3 id="4-3">4.3 向量检索器</h3>
+
+<pre><code>/**
+ * 检索器配置
+ */
+@Component
+public class RagRetrieverConfig {
+
+    @Bean
+    public EmbeddingStoreRetriever embeddingStoreRetriever(
+            RedisEmbeddingStore embeddingStore,
+            DashScopeEmbeddingModel embeddingModel) {
+
+        return EmbeddingStoreRetriever.builder()
+                .embeddingStore(embeddingStore)      // Redis 向量存储
+                .embeddingModel(embeddingModel)      // 千问嵌入模型
+                .maxResults(5)                       // 返回 Top-5 最相似片段
+                .minScore(0.65)                      // 最低相似度阈值（COSINE）
+                .build();
+    }
+}</code></pre>
+
+<h4>检索参数说明</h4>
+
+<table>
+    <tr><th>参数</th><th>默认值</th><th>说明</th></tr>
+    <tr><td><code>maxResults</code></td><td>5</td><td>返回最相似的前 K 个片段，值越大上下文越丰富但 token 消耗越多</td></tr>
+    <tr><td><code>minScore</code></td><td>0.65</td><td>余弦相似度最低阈值，低于此值的片段丢弃（避免引入噪声）</td></tr>
+    <tr><td><code>distanceMetric</code></td><td>COSINE</td><td>余弦距离，适合语义相似度比较</td></tr>
+</table>
+
+<h3 id="4-4">4.4 RAG 增强问答</h3>
+
+<h4>RagService 核心逻辑</h4>
+
+<pre><code>/**
+ * RAG 增强问答服务
+ * <p>
+ * 核心流程：用户问题 → 向量检索 → Prompt 组装 → AI 生成 → 流式输出
+ */
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class RagService {
+
+    private final EmbeddingStoreRetriever retriever;
+    private final MedicalAssistant assistant;         // 复用现有 AI Service
+    private final MedicalContextBuilder contextBuilder; // 复用现有上下文构建
+
+    /**
+     * RAG 增强问答（SSE 流式输出）
+     *
+     * @param elderId  老人ID（用于个性化上下文）
+     * @param question 用户问题
+     * @return 流式 AI 回答
+     */
+    public Flux&lt;String&gt; askWithRag(Integer elderId, String question) {
+
+        // 步骤1: 检索相关知识片段
+        List&lt;TextSegment&gt; relevantDocs = retriever.findRelevant(question);
+        log.info("检索到 {} 个相关片段", relevantDocs.size());
+
+        // 步骤2: 构建个性化医疗上下文（复用现有逻辑）
+        String personalContext = contextBuilder.buildAndFormat(elderId);
+
+        // 步骤3: 组装增强 Prompt
+        String augmentedPrompt = buildAugmentedPrompt(
+                personalContext, relevantDocs, question);
+
+        // 步骤4: 流式生成回答
+        return assistant.chat(augmentedPrompt);
+    }
+
+    /**
+     * 组装增强 Prompt（核心）
+     * <p>
+     * 结构: System指令 → 检索知识 → 个人上下文 → 用户问题
+     */
+    private String buildAugmentedPrompt(
+            String personalContext,
+            List&lt;TextSegment&gt; docs,
+            String question) {
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("【参考知识】请基于以下专业知识回答用户问题：\n");
+        for (int i = 0; i &lt; docs.size(); i++) {
+            TextSegment doc = docs.get(i);
+            sb.append(String.format("--- 参考资料%d (来源: %s) ---\n%s\n",
+                    i + 1,
+                    doc.metadata().getOrDefault("title", "未知"),
+                    doc.text()));
+        }
+        sb.append("\n【用户个人数据】\n").append(personalContext);
+        sb.append("\n【用户问题】").append(question);
+        sb.append("\n\n请结合参考知识和用户个人数据，给出专业、安全、易懂的回答。");
+        sb.append("如果参考知识不足以回答，请明确说明。");
+        return sb.toString();
+    }
+}</code></pre>
+
+<h4>增强后的 System Prompt</h4>
+
+<pre><code>@SystemMessage("""
+        你是老年护理云平台的专业医学助手。
+        你的职责是：
+        - 基于提供的参考知识和用户个人数据回答问题
+        - 不得编造参考知识中未提及的医学信息
+        - 涉及用药安全时必须谨慎，建议咨询医生
+        - 回答简洁易懂，适合老年人理解
+        - 如果参考知识不足以回答问题，请明确告知用户
+        - 在回答末尾标注引用的知识来源
+        """)</code></pre>
+
+<h3 id="4-5">4.5 知识库管理 API</h3>
+
+<table>
+    <tr><th>方法</th><th>路径</th><th>说明</th><th>权限</th></tr>
+    <tr>
+        <td><code>POST</code></td>
+        <td><code>/ai/kb/document</code></td>
+        <td>上传单篇文档（JSON body 含 title + content + category）</td>
+        <td>管理员</td>
+    </tr>
+    <tr>
+        <td><code>POST</code></td>
+        <td><code>/ai/kb/documents/batch</code></td>
+        <td>批量上传文档（JSON 数组）</td>
+        <td>管理员</td>
+    </tr>
+    <tr>
+        <td><code>DELETE</code></td>
+        <td><code>/ai/kb/document/{id}</code></td>
+        <td>删除指定文档及其所有向量</td>
+        <td>管理员</td>
+    </tr>
+    <tr>
+        <td><code>PUT</code></td>
+        <td><code>/ai/kb/document/{id}</code></td>
+        <td>更新文档（删除旧向量 + 重新嵌入）</td>
+        <td>管理员</td>
+    </tr>
+    <tr>
+        <td><code>GET</code></td>
+        <td><code>/ai/kb/documents</code></td>
+        <td>分页列出知识库文档元数据</td>
+        <td>管理员</td>
+    </tr>
+    <tr>
+        <td><code>GET</code></td>
+        <td><code>/ai/kb/categories</code></td>
+        <td>列出所有文档分类及数量统计</td>
+        <td>所有用户</td>
+    </tr>
+</table>
+
+<h4>上传文档请求体示例</h4>
+
+<pre><code>{
+  "title": "布洛芬缓释胶囊说明书",
+  "category": "MEDICINE",
+  "content": "【药品名称】布洛芬缓释胶囊\n【适应症】用于缓解轻至中度疼痛...",
+  "metadata": {
+    "source": "CFDA",
+    "drugCode": "H20013193",
+    "otc": true
+  }
+}</code></pre>
+
+<h3 id="4-6">4.6 Redis 向量存储 Schema 设计</h3>
+
+<h4>索引定义</h4>
+
+<pre><code>// Redis Stack FT.CREATE 索引定义
+FT.CREATE idx:rag_docs           // 索引名称
+  ON HASH                         // 基于 Hash 数据结构
+  PREFIX 1 rag:doc:               // Key 前缀过滤
+  SCHEMA
+    content      TEXT              // 原始文本（支持关键词搜索）
+    embedding    VECTOR HNSW       // 向量字段
+      6
+      TYPE FLOAT32
+      DIM 1536                     // 与嵌入模型输出维度一致
+      DISTANCE_METRIC COSINE       // 余弦距离
+    title        TAG               // 标题（精确匹配过滤）
+    category     TAG               // 分类（按分类过滤用）
+    chunk_index  NUMERIC           // 片段序号
+    created_at   NUMERIC           // 创建时间戳
+    doc_id       TAG               // 文档ID（用于删除/更新）</code></pre>
+
+<h4>Key 命名规范</h4>
+
+<table>
+    <tr><th>Key 模式</th><th>示例</th><th>说明</th></tr>
+    <tr><td><code>rag:doc:{docId}:chunk:{n}</code></td><td><code>rag:doc:a1b2c3:chunk:0</code></td><td>文档的第 n 个片段</td></tr>
+    <tr><td><code>rag:doc:{docId}:meta</code></td><td><code>rag:doc:a1b2c3:meta</code></td><td>文档元信息（title, category 等）</td></tr>
+    <tr><td><code>rag:doc:ids</code></td><td>—</td><td>SET 类型，存储所有文档 ID 集合</td></tr>
+</table>
+
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="5-config">5. 配置方案</h2>
+
+<h3 id="5-1">5.1 Maven 依赖 (elderly-ai/pom.xml 新增)</h3>
+
+<pre><code>&lt;!-- ═══════════════════════════════════════════════ --&gt;
+&lt;!-- RAG: Redis 向量存储（LangChain4j 集成）         --&gt;
+&lt;!-- ═══════════════════════════════════════════════ --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;dev.langchain4j&lt;/groupId&gt;
+    &lt;artifactId&gt;langchain4j-community-redis-spring-boot-starter&lt;/artifactId&gt;
+    &lt;version&gt;${langchain4j.version}&lt;/version&gt;  &lt;!-- 1.15.0-beta25 --&gt;
+&lt;/dependency&gt;
+
+&lt;!-- Jedis 客户端（RedisEmbeddingStore 底层依赖） --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;redis.clients&lt;/groupId&gt;
+    &lt;artifactId&gt;jedis&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></pre>
+
+<div class="info-box">
+    <strong>说明：</strong><code>langchain4j-community-redis-spring-boot-starter</code> 内部封装了
+    Redis Stack 的 <code>FT.CREATE</code> / <code>FT.SEARCH</code> 命令，
+    自动管理索引创建和向量 CRUD，开发者无需手写 Redis 命令。
+</div>
+
+<h3 id="5-2">5.2 application.yml 配置</h3>
+
+<pre><code>spring:
+  config:
+    import:
+      - "nacos:elderly-care-cloud-shared.yaml?refreshEnabled=true&group=DEFAULT_GROUP"
+      - "nacos:elderly-ai.yaml?refreshEnabled=true&group=DEFAULT_GROUP"
+  application:
+    name: elderly-ai
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_HOST:localhost}:8848
+        namespace: 95fa0605-69e9-4b3b-8ecb-24feb2e63db3
+      config:
+        server-addr: ${NACOS_HOST:localhost}:8848
+        file-extension: yaml
+        namespace: 95fa0605-69e9-4b3b-8ecb-24feb2e63db3
+
+server:
+  port: 8087
+
+# ═══════════════════════════════════════════
+# LangChain4j 配置
+# ═══════════════════════════════════════════
+langchain4j:
+  community:
+    dashscope:
+      # 对话模型（已有）
+      chat-model:
+        api-key: ${AI_DASHSCOPE_API_KEY}
+        model-name: qwen3.6-flash
+        temperature: 0.4
+        timeout: 60s
+        log-requests: true
+        log-responses: true
+      streaming-chat-model:
+        api-key: ${AI_DASHSCOPE_API_KEY}
+        model-name: qwen3.6-flash
+      # 嵌入模型（已有配置 + 新增维度参数）
+      embedding-model:
+        api-key: ${AI_DASHSCOPE_API_KEY}
+        model-name: text-embedding-v3
+        # text-embedding-v3 支持指定维度，可选值见 3.1 节
+        dimensions: 1536
+        timeout: 30s
+        log-requests: false
+        log-responses: false
+    redis:
+      # Redis 向量存储配置（新增）
+      embedding-store:
+        # Redis Stack 连接
+        host: ${REDIS_HOST:localhost}
+        port: ${REDIS_PORT:6379}
+        password: ${REDIS_PASSWORD:}
+        # 向量索引配置
+        index-name: idx_rag_docs
+        prefix: rag:doc:
+        dimension: 1536         # 必须与嵌入模型输出维度一致
+        metric-type: COSINE
+        # 检索默认参数
+        max-results: 5
+        min-score: 0.65
+
+# ═══════════════════════════════════════════
+# RAG 业务配置（自定义）
+# ═══════════════════════════════════════════
+elderly:
+  rag:
+    # 文档切分配置
+    chunk:
+      max-size: 500            # 最大字符数
+      max-overlap: 50          # 重叠字符数
+    # 检索配置
+    retrieval:
+      max-results: 5           # 默认检索 Top-K
+      min-score: 0.65          # 最低相似度阈值
+    # 知识库配置
+    knowledge-base:
+      # 支持的文件类型
+      allowed-types: txt,md,json
+      # 单文件最大大小
+      max-file-size: 5MB</code></pre>
+
+<h3 id="5-3">5.3 Docker 基础设施变更</h3>
+
+<pre><code># docker-compose.yml — Redis 部分变更
+
+  # ═══ 旧配置 (redis:7.0 不支持向量检索) ═══
+  # redis:
+  #   image: redis:7.0
+  #   container_name: elderly-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - ./redis-data:/data
+  #   restart: always
+  #   networks:
+  #     - elderly-network
+
+  # ═══ 新配置 (Redis Stack 支持向量检索) ═══
+  redis:
+    image: redis/redis-stack-server:7.4.0-v1   # ← 替换镜像
+    container_name: elderly-redis
+    ports:
+      - "6379:6379"                            # Redis 协议端口
+    volumes:
+      - ./redis-data:/data                     # RDB/AOF 持久化 + 索引数据
+    environment:
+      - REDIS_ARGS=--requirepass ${REDIS_PASSWORD:-}  # 可选密码
+    restart: always
+    networks:
+      - elderly-network</code></pre>
+
+<div class="warn-box">
+    <strong>⚠️ 迁移注意事项：</strong>
+    <ul>
+        <li><code>redis/redis-stack-server</code> 向后兼容标准 Redis 协议，现有 RedisUtil 代码无需修改</li>
+        <li>如果原 <code>redis-data</code> 目录有持久化数据，建议先备份再切换</li>
+        <li>Redis Stack 镜像约比标准 Redis 大 30MB</li>
+        <li>索引数据存储在 <code>/data</code> 目录下，与 RDB/AOF 共存</li>
+    </ul>
+</div>
+
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="6-class">6. 类设计清单</h2>
+
+<table>
+    <tr><th>包路径</th><th>类名</th><th>类型</th><th>职责</th></tr>
+    <tr>
+        <td><code>config/</code></td>
+        <td><code>RagConfig.java</code></td>
+        <td>@Configuration</td>
+        <td>RAG 相关 Bean 装配：EmbeddingStoreRetriever、DocumentSplitter</td>
+    </tr>
+    <tr>
+        <td><code>controller/</code></td>
+        <td><code>RagAssistantController.java</code></td>
+        <td>@RestController</td>
+        <td>RAG 问答接口：<code>/ai/rag/ask</code>（SSE 流式）</td>
+    </tr>
+    <tr>
+        <td><code>controller/</code></td>
+        <td><code>KnowledgeBaseController.java</code></td>
+        <td>@RestController</td>
+        <td>知识库管理 CRUD 接口</td>
+    </tr>
+    <tr>
+        <td><code>service/</code></td>
+        <td><code>RagService.java</code></td>
+        <td>@Service</td>
+        <td>RAG 核心逻辑：检索 + Prompt 增强 + 调用 AI</td>
+    </tr>
+    <tr>
+        <td><code>service/</code></td>
+        <td><code>KnowledgeService.java</code></td>
+        <td>@Service</td>
+        <td>文档管理：上传/删除/更新 + 触发嵌入管道</td>
+    </tr>
+    <tr>
+        <td><code>service/</code></td>
+        <td><code>IngestionPipeline.java</code></td>
+        <td>@Service</td>
+        <td>文档摄取管道：切分 → 嵌入 → 存储（可复用的独立组件）</td>
+    </tr>
+    <tr>
+        <td><code>dto/</code></td>
+        <td><code>KnowledgeDocumentDTO.java</code></td>
+        <td>DTO</td>
+        <td>知识文档前端传输对象</td>
+    </tr>
+    <tr>
+        <td><code>dto/</code></td>
+        <td><code>RagQueryDTO.java</code></td>
+        <td>DTO</td>
+        <td>RAG 查询请求参数</td>
+    </tr>
+    <tr>
+        <td><code>dto/</code></td>
+        <td><code>RagResponseDTO.java</code></td>
+        <td>DTO</td>
+        <td>RAG 回答响应（含引用来源列表）</td>
+    </tr>
+    <tr>
+        <td><code>vo/</code></td>
+        <td><code>KnowledgeDocVO.java</code></td>
+        <td>VO</td>
+        <td>知识文档列表视图对象</td>
+    </tr>
+</table>
+
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="7-flow">7. 数据流示例</h2>
+
+<h3 id="7-1">7.1 文档入库流程（时序图）</h3>
+
+<div class="arch-diagram">
+  管理员           KnowledgeBase         Knowledge          Ingestion         DashScope        Redis Stack
+    │              Controller             Service            Pipeline          Embedding        (RediSearch)
+    │                  │                     │                  │                  │                │
+    │ POST /ai/kb/doc  │                     │                  │                  │                │
+    ├─────────────────►│                     │                  │                  │                │
+    │                  │ uploadDocument()    │                  │                  │                │
+    │                  ├────────────────────►│                  │                  │                │
+    │                  │                     │ ingest(doc)      │                  │                │
+    │                  │                     ├─────────────────►│                  │                │
+    │                  │                     │                  │ 1.split(DocumentSplitter)           │
+    │                  │                     │                  │   → List&lt;TextSegment&gt;              │
+    │                  │                     │                  │                  │                │
+    │                  │                     │                  │ 2.embedAll(segments)                │
+    │                  │                     │                  ├─────────────────►│                │
+    │                  │                     │                  │◄─────────────────┤                │
+    │                  │                     │                  │ List&lt;Embedding&gt; │                │
+    │                  │                     │                  │                  │                │
+    │                  │                     │                  │ 3.addAll(embeddings, segments)       │
+    │                  │                     │                  ├──────────────────────────────────►│
+    │                  │                     │                  │◄──────────────────────────────────┤
+    │                  │                     │                  │                  │  OK            │
+    │                  │                     │ ◄─────────────────┤                  │                │
+    │                  │ ◄────────────────────┤                  │                  │                │
+    │ ◄─────────────────┤                     │                  │                  │                │
+    │  200 OK          │                     │                  │                  │                │
+    │  {docId: "abc"}  │                     │                  │                  │                │
+</div>
+
+<h3 id="7-2">7.2 知识问答流程（时序图）</h3>
+
+<div class="arch-diagram">
+   用户           RagAssistant         RagService        EmbeddingStore      DashScope      MedicalAssistant
+    │             Controller                              Retriever          Embedding      (千问大模型)
+    │                 │                    │                   │                │               │
+    │ POST /ai/rag/ask│                    │                   │                │               │
+    │ {question}      │                    │                   │                │               │
+    ├────────────────►│                    │                   │                │               │
+    │                 │ askWithRag(q)      │                   │                │               │
+    │                 ├───────────────────►│                   │                │               │
+    │                 │                    │ 1.embedQuery(q)   │                │               │
+    │                 │                    ├──────────────────►│                │               │
+    │                 │                    │                   │ embed(q)       │               │
+    │                 │                    │                   ├───────────────►│               │
+    │                 │                    │                   │◄───────────────┤               │
+    │                 │                    │◄──────────────────┤ float[1536]    │               │
+    │                 │                    │                   │                │               │
+    │                 │                    │ 2.findRelevant(q) │                │               │
+    │                 │                    ├──────────────────►│                │               │
+    │                 │                    │                   │ FT.SEARCH KNN  │               │
+    │                 │                    │◄──────────────────┤ Top-5 chunks   │               │
+    │                 │                    │                   │                │               │
+    │                 │                    │ 3.contextBuilder   │                │               │
+    │                 │                    │   .buildAndFormat()│                │               │
+    │                 │                    │                   │                │               │
+    │                 │                    │ 4.组装增强 Prompt  │                │               │
+    │                 │                    │                   │                │               │
+    │                 │                    │ 5.assistant.chat() │                │               │
+    │                 │                    ├──────────────────────────────────────────────────►│
+    │                 │                    │◄───────────────────────────────────── Flux(token)  │
+    │                 │◄───────────────────┤                   │                │               │
+    │◄────────────────┤ Flux&lt;SSE&gt;         │                   │                │               │
+    │ SSE: token1...  │                    │                   │                │               │
+</div>
+
+
+<!-- ════════════════════════════════════════ -->
+<h2 id="8-risk">8. 风险与注意事项</h2>
+
+<table>
+    <tr><th>风险</th><th>影响</th><th>应对策略</th></tr>
+    <tr>
+        <td>嵌入 API 调用失败</td>
+        <td>文档入库中断 / 问答无法检索</td>
+        <td>① 添加重试机制（3次指数退避）<br>② 降级为纯大模型回答（无 RAG）</td>
+    </tr>
+    <tr>
+        <td>Redis Stack 内存溢出</td>
+        <td>检索超时或服务不可用</td>
+        <td>① 设置 maxmemory 限制<br>② 监控向量索引大小<br>③ 定期清理过期文档</td>
+    </tr>
+    <tr>
+        <td>嵌入成本过高</td>
+        <td>大量文档入库时 API 费用攀升</td>
+        <td>① 批量嵌入合并请求<br>② 缓存已嵌入的文档片段<br>③ 按需入库（非全量同步）</td>
+    </tr>
+    <tr>
+        <td>检索噪声</td>
+        <td>不相关片段污染 Prompt，降低回答质量</td>
+        <td>① 合理设置 minScore 阈值<br>② 可引入 Reranker 二次排序<br>③ Prompt 中明确"参考资料不足时请说明"</td>
+    </tr>
+    <tr>
+        <td>医学信息过时</td>
+        <td>过时药品信息误导用户</td>
+        <td>① 文档元数据记录版本号和更新日期<br>② 定期审核知识库内容<br>③ 回答中添加时效性声明</td>
+    </tr>
+    <tr>
+        <td>Redis 标准版升级到 Stack</td>
+        <td>不兼容导致现有缓存失效</td>
+        <td>① 在测试环境先验证<br>② 保留原有 RDB 备份<br>③ 切换后回归测试 RedisUtil</td>
+    </tr>
+</table>
+
+<div class="success-box">
+    <strong>📌 总 结</strong><br><br>
+    本方案充分利用项目现有基础设施（千问 DashScope、Redis、LangChain4j），以最小成本引入 RAG 能力：
+    <ul>
+        <li><strong>嵌入层：</strong>复用已配置的千问 <code>text-embedding-v3</code> 模型</li>
+        <li><strong>存储层：</strong>Redis 升级到 Stack 版本，一个镜像替换即可</li>
+        <li><strong>框架层：</strong>新增 1 个 LangChain4j Redis starter 依赖</li>
+        <li><strong>业务层：</strong>新增 ~10 个 Java 类，与现有 <code>MedicalAssistant</code> 无缝协作</li>
+    </ul>
+    预计开发周期：<strong>3-5 个工作日</strong>（含测试和文档入库）。
+</div>
+
+<p style="text-align:center; color: var(--text-secondary); margin-top: 48px; padding: 24px 0; border-top: 1px solid var(--border);">
+    📄 文档结束 — 老年护理云平台 RAG 增强检索生成设计 v1.0
+</p>
+
+</main>
+</body>
+</html>

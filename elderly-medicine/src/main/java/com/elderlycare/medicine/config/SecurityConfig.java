@@ -14,17 +14,26 @@ public class SecurityConfig extends BaseSecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    /**
+     * 构造函数，注入 JWT 认证过滤器
+     */
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
+    /**
+     * 返回 JWT 认证过滤器实例
+     */
     @Override
     protected JwtAuthenticationFilter jwtAuthenticationFilter() {
         return jwtAuthenticationFilter;
     }
 
+    /**
+     * 返回无需认证的路径数组
+     */
     @Override
     protected String[] permitAllPaths() {
-        return new String[]{};
+        return new String[]{"/medicine/**", "/record/**"};
     }
 }

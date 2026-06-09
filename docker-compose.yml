@@ -6,17 +6,17 @@ services:
     container_name: elderly-nacos
     environment:
       - MODE=standalone
-      - NACOS_AUTH_ENABLE=false
-      - NACOS_AUTH_TOKEN=RWxkZXJseUNhcmUyMDI2U2VjcmV0S2V5Rm9yTmFjb3NBdXRo
-      - NACOS_AUTH_IDENTITY_KEY=elderlyCare
-      - NACOS_AUTH_IDENTITY_VALUE=elderlyCare2026
+      - NACOS_AUTH_ENABLE=${NACOS_AUTH_ENABLE:-false}
+      - NACOS_AUTH_TOKEN=${NACOS_AUTH_TOKEN:-}
+      - NACOS_AUTH_IDENTITY_KEY=${NACOS_AUTH_IDENTITY_KEY:-elderlyCare}
+      - NACOS_AUTH_IDENTITY_VALUE=${NACOS_AUTH_IDENTITY_VALUE:-elderlyCare2026}
       - PREFER_HOST_MODE=hostname
       - SPRING_DATASOURCE_PLATFORM=mysql
       - MYSQL_SERVICE_HOST=mysql
       - MYSQL_SERVICE_PORT=3306
       - MYSQL_SERVICE_DB_NAME=nacos_config
       - MYSQL_SERVICE_USER=root
-      - MYSQL_SERVICE_PASSWORD=Zheng666
+      - MYSQL_SERVICE_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_SERVICE_DB_PARAM=characterEncoding=utf8&connectTimeout=10000&socketTimeout=30000&autoReconnect=true&useSSL=false&serverTimezone=Asia/Shanghai
     ports:
       - "8848:8848"
@@ -34,7 +34,7 @@ services:
     image: mysql:8.0
     container_name: elderly-mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=Zheng666
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=nacos_config
     ports:
       - "13306:3306"
@@ -43,16 +43,16 @@ services:
       - ./init-sql:/docker-entrypoint-initdb.d
     command: --default-authentication-plugin=mysql_native_password
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pZheng666"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 10
     restart: always
     networks:
       - elderly-network
-  # Redis
+  # Redis Stack（含 RediSearch 模块，支持向量检索）
   redis:
-    image: redis:7.0
+    image: redis/redis-stack-server:7.4.0-v1
     container_name: elderly-redis
     ports:
       - "6379:6379"

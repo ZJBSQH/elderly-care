@@ -48,6 +48,26 @@ public class RecordVO {
     private Integer status;
 
     /**
+     * 药品名称（关联 medicine 表）
+     */
+    private String medicineName;
+
+    /**
+     * 剂量（关联 medicine 表）
+     */
+    private String dosage;
+
+    /**
+     * 频次（关联 medicine 表）
+     */
+    private String frequency;
+
+    /**
+     * 状态文本
+     */
+    private String statusText;
+
+    /**
      * 备注
      */
     private String remark;

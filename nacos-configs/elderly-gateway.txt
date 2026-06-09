@@ -24,11 +24,11 @@ spring:
         - id: elderly-medicine
           uri: lb://elderly-medicine
           predicates:
-            - Path=/medicine/**
+            - Path=/medicine/**,/record/**
         - id: elderly-remind
           uri: lb://elderly-remind
           predicates:
-            - Path=/remind/**,/record/**
+            - Path=/remind/**
         - id: elderly-news
           uri: lb://elderly-news
           predicates:

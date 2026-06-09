@@ -1,6 +1,7 @@
 package com.elderlycare.news.mapper;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.elderlycare.news.entity.News;
 import org.apache.ibatis.annotations.Mapper;
@@ -60,5 +61,50 @@ public interface NewsMapper extends BaseMapper<News> {
         wrapper.eq(News::getStatus, 1)
                 .orderByDesc(News::getLikeCount);
         return selectList(wrapper);
+    }
+
+    /**
+     * 原子增加浏览次数
+     */
+    default void incrementViewCount(Integer newsId) {
+        update(null, new LambdaUpdateWrapper<News>()
+                .eq(News::getId, newsId)
+                .setSql("view_count = view_count + 1"));
+    }
+
+    /**
+     * 原子增加点赞数
+     */
+    default void incrementLikeCount(Integer newsId) {
+        update(null, new LambdaUpdateWrapper<News>()
+                .eq(News::getId, newsId)
+                .setSql("like_count = like_count + 1"));
+    }
+
+    /**
+     * 原子减少点赞数（最小为0）
+     */
+    default void decrementLikeCount(Integer newsId) {
+        update(null, new LambdaUpdateWrapper<News>()
+                .eq(News::getId, newsId)
+                .setSql("like_count = GREATEST(like_count - 1, 0)"));
+    }
+
+    /**
+     * 原子增加收藏数
+     */
+    default void incrementCollectCount(Integer newsId) {
+        update(null, new LambdaUpdateWrapper<News>()
+                .eq(News::getId, newsId)
+                .setSql("collect_count = collect_count + 1"));
+    }
+
+    /**
+     * 原子减少收藏数（最小为0）
+     */
+    default void decrementCollectCount(Integer newsId) {
+        update(null, new LambdaUpdateWrapper<News>()
+                .eq(News::getId, newsId)
+                .setSql("collect_count = GREATEST(collect_count - 1, 0)"));
     }
 }

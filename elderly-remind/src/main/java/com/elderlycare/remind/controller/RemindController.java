@@ -24,6 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RemindController {
 
+    /** 提醒服务 */
     private final RemindService remindService;
 
     /**
@@ -85,11 +86,11 @@ public class RemindController {
     }
 
     /**
-     * 获取当前用户当天的提醒任务
+     * 获取当天提醒任务（可选 elderId，不传则按当前用户查询）
      */
     @GetMapping("/task/today")
-    public Result<List<RemindTaskVO>> getTodayTasks() {
-        return remindService.getTodayTasks();
+    public Result<List<RemindTaskVO>> getTodayTasks(@RequestParam(required = false) Integer elderId) {
+        return remindService.getTodayTasks(elderId);
     }
 
     /**
@@ -97,6 +98,16 @@ public class RemindController {
      */
     @GetMapping("/notification/list")
     public Result<List<NotificationVO>> listNotifications(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        return remindService.getMyNotifications(page, pageSize);
+    }
+
+    /**
+     * 获取当前用户通知列表（别名，等同 /notification/list）
+     */
+    @GetMapping("/notification/user/my")
+    public Result<List<NotificationVO>> getUserMyNotifications(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer pageSize) {
         return remindService.getMyNotifications(page, pageSize);

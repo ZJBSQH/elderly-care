@@ -7,6 +7,8 @@ import com.elderlycare.admin.entity.Disease;
 import com.elderlycare.admin.mapper.DiseaseMapper;
 import com.elderlycare.admin.service.DiseaseService;
 import com.elderlycare.admin.vo.DiseaseVO;
+import com.elderlycare.common.core.exception.BusinessException;
+import com.elderlycare.common.core.util.BeanUtil;
 import com.elderlycare.common.core.result.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,12 @@ public class DiseaseServiceImpl implements DiseaseService {
 
     private final DiseaseMapper diseaseMapper;
 
+    /**
+     * 获取疾病列表，支持按分类筛选
+     *
+     * @param category 疾病分类（可选，为空则查询全部）
+     * @return 疾病列表
+     */
     @Override
     public Result<List<DiseaseVO>> list(String category) {
         LambdaQueryWrapper<Disease> wrapper = new LambdaQueryWrapper<>();
@@ -44,16 +52,27 @@ public class DiseaseServiceImpl implements DiseaseService {
         return Result.success(voList);
     }
 
+    /**
+     * 根据ID获取疾病详情
+     *
+     * @param id 疾病ID
+     * @return 疾病详情
+     */
     @Override
     public Result<DiseaseVO> getById(Long id) {
         Disease disease = diseaseMapper.selectById(id);
         if (disease == null) {
-            return Result.error(AdminErrorCode.DISEASE_NOT_FOUND.getCode(),
-                    AdminErrorCode.DISEASE_NOT_FOUND.getMessage());
+            throw new BusinessException(AdminErrorCode.DISEASE_NOT_FOUND);
         }
         return Result.success(toVO(disease));
     }
 
+    /**
+     * 添加疾病到字典
+     *
+     * @param dto 疾病添加DTO
+     * @return 添加结果
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> add(AdminDiseaseAddDTO dto) {
@@ -71,35 +90,39 @@ public class DiseaseServiceImpl implements DiseaseService {
         return Result.success(null, "疾病添加成功");
     }
 
+    /**
+     * 更新疾病信息
+     *
+     * @param id  疾病ID
+     * @param dto 疾病添加DTO
+     * @return 更新结果
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> update(Long id, AdminDiseaseAddDTO dto) {
         Disease disease = diseaseMapper.selectById(id);
         if (disease == null) {
-            return Result.error(AdminErrorCode.DISEASE_NOT_FOUND.getCode(),
-                    AdminErrorCode.DISEASE_NOT_FOUND.getMessage());
+            throw new BusinessException(AdminErrorCode.DISEASE_NOT_FOUND);
         }
-        disease.setDiseaseName(dto.getDiseaseName());
-        disease.setCategory(dto.getCategory());
-        disease.setSymptoms(dto.getSymptoms());
-        disease.setTreatment(dto.getTreatment());
-        disease.setPrevention(dto.getPrevention());
-        if (dto.getStatus() != null) {
-            disease.setStatus(dto.getStatus());
-        }
+        BeanUtil.copyNonNullProperties(dto, disease);
         disease.setUpdateTime(LocalDateTime.now());
         diseaseMapper.updateById(disease);
         log.info("更新疾病成功，id: {}, diseaseName: {}", id, dto.getDiseaseName());
         return Result.success(null, "疾病更新成功");
     }
 
+    /**
+     * 根据ID删除疾病
+     *
+     * @param id 疾病ID
+     * @return 删除结果
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> delete(Long id) {
         Disease disease = diseaseMapper.selectById(id);
         if (disease == null) {
-            return Result.error(AdminErrorCode.DISEASE_NOT_FOUND.getCode(),
-                    AdminErrorCode.DISEASE_NOT_FOUND.getMessage());
+            throw new BusinessException(AdminErrorCode.DISEASE_NOT_FOUND);
         }
         diseaseMapper.deleteById(id);
         log.info("删除疾病成功，id: {}", id);
@@ -114,15 +137,7 @@ public class DiseaseServiceImpl implements DiseaseService {
      */
     private DiseaseVO toVO(Disease disease) {
         DiseaseVO vo = new DiseaseVO();
-        vo.setId(disease.getId());
-        vo.setDiseaseName(disease.getDiseaseName());
-        vo.setCategory(disease.getCategory());
-        vo.setSymptoms(disease.getSymptoms());
-        vo.setTreatment(disease.getTreatment());
-        vo.setPrevention(disease.getPrevention());
-        vo.setStatus(disease.getStatus());
-        vo.setCreateTime(disease.getCreateTime());
-        vo.setUpdateTime(disease.getUpdateTime());
+        BeanUtil.copyProperties(disease, vo);
         return vo;
     }
 }

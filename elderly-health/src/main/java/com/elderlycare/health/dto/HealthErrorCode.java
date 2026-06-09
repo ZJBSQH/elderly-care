@@ -18,6 +18,8 @@ public enum HealthErrorCode implements ErrorCode {
      */
     HEALTH_RECORD_NOT_EXIST(4001, "健康记录不存在");
 
+    /** 错误码 */
     private final Integer code;
+    /** 错误信息 */
     private final String message;
 }

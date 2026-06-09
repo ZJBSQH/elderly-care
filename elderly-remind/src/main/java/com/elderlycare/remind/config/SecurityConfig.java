@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SecurityConfig extends BaseSecurityConfig {
 
+    /** JWT 认证过滤器 */
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
@@ -25,6 +26,6 @@ public class SecurityConfig extends BaseSecurityConfig {
 
     @Override
     protected String[] permitAllPaths() {
-        return new String[]{"/ws/**"};
+        return new String[]{"/ws/**", "/remind/**"};
     }
 }

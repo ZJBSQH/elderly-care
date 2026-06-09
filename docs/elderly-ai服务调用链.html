@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>elderly-ai 服务调用链 — 老年护理云平台</title>
+    <style>
+        :root { --c1:#2563eb; --c1b:#eff6ff; --c2:#e2e8f0; --bg:#f8fafc; --txt:#1e293b; --t2:#64748b; --cb:#1e293b; --ct:#e2e8f0; --s:#16a34a; --w:#d97706; --r:8px; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; color:var(--txt); background:var(--bg); line-height:1.9; font-size:15px; }
+        main { max-width:1100px; margin:0 auto; padding:40px 56px; }
+        h1 { font-size:28px; border-bottom:3px solid var(--c1); padding-bottom:16px; margin-bottom:24px; }
+        h2 { font-size:20px; margin-top:52px; margin-bottom:16px; padding:8px 14px; border-left:4px solid var(--c1); background:var(--c1b); border-radius:0 6px 6px 0; }
+        h3 { font-size:16px; margin:24px 0 10px; color:var(--txt); }
+        p { margin-bottom:8px; }
+
+        .chain {
+            background:#fff; border:1px solid var(--c2); border-radius:var(--r);
+            padding:24px 28px; margin:16px 0; font-family:"JetBrains Mono","Fira Code","Consolas",monospace;
+            font-size:12.5px; line-height:1.8; white-space:pre; overflow-x:auto;
+        }
+        .chain .kw { color:#2563eb; font-weight:700; }
+        .chain .ctrl { color:#16a34a; }
+        .chain .svc { color:#7c3aed; }
+        .chain .ext { color:#d97706; }
+        .chain .comment { color:#94a3b8; font-style:italic; }
+        .chain .arrow { color:#64748b; }
+        .chain .step { color:#dc2626; font-weight:700; }
+        .chain .dep { color:#0891b2; }
+
+        .summary { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin:20px 0; }
+        .summary .item { background:#fff; border:1px solid var(--c2); border-radius:var(--r); padding:16px 20px; text-align:center; }
+        .summary .item .num { font-size:36px; font-weight:700; }
+        .summary .item .lbl { font-size:13px; color:var(--t2); margin-top:4px; }
+
+        @media (max-width:800px) { main { padding:20px; } .summary { grid-template-columns:1fr; } .chain { font-size:11px; padding:16px; } }
+    </style>
+</head>
+<body>
+<main>
+
+<h1>🔗 elderly-ai 服务调用链</h1>
+
+<div class="summary">
+    <div class="item"><div class="num" style="color:var(--c1);">3</div><div class="lbl">条主链路</div></div>
+    <div class="item"><div class="num" style="color:#7c3aed;">7</div><div class="lbl">个 Service 类</div></div>
+    <div class="item"><div class="num" style="color:#d97706;">4</div><div class="lbl">个外部依赖</div></div>
+</div>
+
+<!-- ════════════════════════════════════════ -->
+<h2>链路一：普通 AI 问答（旧链路）</h2>
+<p>触发入口：POST /ai/medicine/question 或 GET /ai/medicine/today-advice</p>
+
+<h3>调用链</h3>
+<div class="chain"><span class="ctrl">AssistantController</span>
+  │
+  ├─ <span class="svc">MedicalContextBuilder</span>.<span class="step">buildAndFormat</span>(elderId)
+  │     │
+  │     └─ <span class="svc">MedicalContextBuilderImpl</span>.<span class="step">buildAndFormat</span>(elderId)
+  │           │
+  │           ├─ <span class="ext">MedicineFeignClient</span>.<span class="step">getMedicinesByElderId</span>(elderId)
+  │           │     └─ <span class="arrow">HTTP GET /medicine/look/{elderId}</span>
+  │           │           └─ <span class="dep">elderly-medicine :8084</span>  <span class="comment">→ 药品清单</span>
+  │           │
+  │           ├─ <span class="ext">MedicineFeignClient</span>.<span class="step">getTodayRecords</span>(elderId)
+  │           │     └─ <span class="arrow">HTTP GET /record/today?elderId=x</span>
+  │           │           └─ <span class="dep">elderly-medicine :8084</span>  <span class="comment">→ 今日用药记录</span>
+  │           │
+  │           ├─ <span class="ext">RemindFeignClient</span>.<span class="step">getTodayTasks</span>()
+  │           │     └─ <span class="arrow">HTTP GET /remind/task/today</span>
+  │           │           └─ <span class="dep">elderly-remind :8085</span>  <span class="comment">→ 今日提醒任务</span>
+  │           │
+  │           └─ <span class="comment">formatToNaturalLanguage()</span>  <span class="comment">→ 转自然语言文本</span>
+  │
+  └─ <span class="svc">MedicalAssistant</span>.<span class="step">chat</span>(fullMessage)
+        └─ <span class="ext">DashScope ChatModel</span> (qwen3.6-flash)
+              └─ <span class="dep">阿里云 DashScope API</span>  <span class="comment">→ Flux&lt;String&gt; SSE 流</span></div>
+
+<!-- ════════════════════════════════════════ -->
+<h2>链路二：RAG 增强问答（新链路）</h2>
+<p>触发入口：POST /ai/rag/ask 或 POST /ai/rag/health-knowledge</p>
+
+<h3>2.1 完整调用链</h3>
+<div class="chain"><span class="ctrl">RagAssistantController</span>.<span class="step">askWithRag</span>(dto)
+  │
+  └─ <span class="svc">RagService</span>.<span class="step">askWithRag</span>(elderId, question)
+        │
+        ├─❶ <span class="svc">RagService</span>.<span class="step">retrieveRelevant</span>(question)  [private]
+        │     │
+        │     ├─ <span class="ext">EmbeddingModel</span>.<span class="step">embed</span>(question)
+        │     │     └─ <span class="dep">千问 DashScope text-embedding-v3</span>  <span class="comment">→ 1536维向量</span>
+        │     │
+        │     ├─ <span class="kw">new</span> EmbeddingSearchRequest(queryEmbedding, maxResults, minScore)
+        │     │
+        │     └─ <span class="svc">RedisEmbeddingStore</span>.<span class="step">search</span>(request)
+        │           │
+        │           ├─ <span class="comment">embeddingToBytes()</span>  <span class="comment">→ FLOAT32 小端 6144字节</span>
+        │           │
+        │           ├─ <span class="ext">Jedis</span>.<span class="step">ftSearch</span>(indexName, query, params)
+        │           │     └─ <span class="dep">Redis Stack (RediSearch)</span>  <span class="comment">→ HNSW KNN</span>
+        │           │
+        │           └─ 遍历结果:
+        │                 ├─ <span class="comment">getProperty(doc, "__score")</span>  <span class="comment">→ 距离转相似度</span>
+        │                 ├─ <span class="comment">blobToEmbedding()</span>           <span class="comment">→ 反序列化向量</span>
+        │                 └─ <span class="comment">buildMetadata()</span>               <span class="comment">→ 组装 LangChain4j Metadata</span>
+        │
+        ├─❷ <span class="svc">MedicalContextBuilder</span>.<span class="step">buildAndFormat</span>(elderId)
+        │     └─ <span class="comment">(复用链路一，拉取个人用药数据)</span>
+        │     └─ <span class="comment">elderId==null 时跳过，返回 "(无个人数据)"</span>
+        │
+        ├─❸ <span class="svc">RagService</span>.<span class="step">buildAugmentedPrompt</span>(docs, ctx, question)  [private]
+        │     └─ <span class="comment">组装: System提示 + 参考知识 + 个人数据 + 用户问题</span>
+        │
+        └─❹ <span class="svc">MedicalAssistant</span>.<span class="step">chat</span>(augmentedPrompt)
+              └─ <span class="ext">DashScope ChatModel</span>
+                    └─ <span class="dep">阿里云 DashScope API</span>  <span class="comment">→ Flux&lt;String&gt; SSE 流</span></div>
+
+<h3>2.2 降级分支（检索失败时）</h3>
+<div class="chain"><span class="svc">RagService</span>.<span class="step">askWithRag</span>() → <span class="step">catch</span> 异常
+  │
+  ├─ <span class="comment">elderId != null</span> → <span class="svc">MedicalContextBuilder</span>.<span class="step">buildAndFormat</span>(elderId)
+  ├─ <span class="comment">elderId == null</span> → "(无个人数据)"
+  │
+  └─ <span class="svc">MedicalAssistant</span>.<span class="step">chat</span>(fallbackPrompt)  <span class="comment">→ 纯大模型回答，无知识库</span></div>
+
+<h3>2.3 依赖关系矩阵</h3>
+<div class="chain"><span class="kw">RagService</span>
+  ├── <span class="dep">EmbeddingModel</span>         <span class="comment">(千问 DashScope, LangChain4j 自动配置)</span>
+  ├── <span class="dep">RedisEmbeddingStore</span>    <span class="comment">(自定义, 在 RagConfig 中装配)</span>
+  ├── <span class="dep">MedicalAssistant</span>       <span class="comment">(@AiService, 复用旧链路)</span>
+  └── <span class="dep">MedicalContextBuilder</span>  <span class="comment">(复用旧链路)</span></div>
+
+
+<!-- ════════════════════════════════════════ -->
+<h2>链路三：知识库管理</h2>
+
+<h3>3.1 上传文档</h3>
+<p>触发入口：POST /ai/kb/document</p>
+<div class="chain"><span class="ctrl">KnowledgeBaseController</span>.<span class="step">uploadDocument</span>(dto)
+  │
+  └─ <span class="svc">KnowledgeService</span>.<span class="step">uploadDocument</span>(dto)
+        │
+        ├─ <span class="comment">校验分类: ALLOWED_CATEGORIES.contains(category)</span>
+        │
+        └─ <span class="svc">IngestionPipeline</span>.<span class="step">ingest</span>(text, metadata)
+              │
+              ├─ <span class="comment">阶段1: split(text, metadata)</span>
+              │     ├─ <span class="ext">DocumentSplitters</span>.<span class="step">recursive</span>(500, 50)
+              │     ├─ <span class="ext">splitter</span>.<span class="step">split</span>(Document.from(text))
+              │     └─ <span class="comment">为每段注入 title/category/doc_id/chunk_index 元数据</span>
+              │
+              ├─ <span class="comment">阶段2: embed(segments)</span>
+              │     └─ <span class="ext">EmbeddingModel</span>.<span class="step">embedAll</span>(segments)
+              │           └─ <span class="dep">千问 DashScope text-embedding-v3</span>  <span class="comment">→ 1536维向量 × N</span>
+              │
+              └─ <span class="comment">阶段3: store</span>
+                    └─ <span class="svc">RedisEmbeddingStore</span>.<span class="step">addAll</span>(embeddings, segments)
+                          └─ 逐个 <span class="comment">addInternal(id, embedding, segment)</span>
+                                ├─ <span class="comment">embeddingToBytes()</span>  <span class="comment">→ FLOAT32 小端字节</span>
+                                ├─ <span class="comment">bytesToBlob()</span>       <span class="comment">→ ISO-8859-1 字符串</span>
+                                └─ <span class="ext">Jedis</span>.<span class="step">hset</span>(key, fields)
+                                      └─ <span class="dep">Redis Stack</span> <span class="comment">→ RediSearch 自动索引</span></div>
+
+<h3>3.2 删除文档</h3>
+<p>触发入口：DELETE /ai/kb/document/{id}</p>
+<div class="chain"><span class="ctrl">KnowledgeBaseController</span>.<span class="step">deleteDocument</span>(id)
+  │
+  └─ <span class="svc">KnowledgeService</span>.<span class="step">deleteDocument</span>(docId)
+        │
+        └─ <span class="svc">RedisEmbeddingStore</span>.<span class="step">removeByDocId</span>(docId)
+              │
+              ├─ <span class="ext">Jedis</span>.<span class="step">ftSearch</span>(indexName, "@doc_id:{docId}")
+              │     └─ <span class="dep">Redis Stack RediSearch</span> <span class="comment">→ 找到所有匹配 Key</span>
+              │
+              └─ <span class="ext">Jedis</span>.<span class="step">del</span>(keys)
+                    └─ <span class="dep">Redis Stack</span> <span class="comment">→ 批量删除 Hash + 自动移除索引</span></div>
+
+<h3>3.3 更新文档</h3>
+<p>触发入口：PUT /ai/kb/document/{id}</p>
+<div class="chain"><span class="ctrl">KnowledgeBaseController</span>.<span class="step">updateDocument</span>(id, dto)
+  │
+  └─ <span class="svc">KnowledgeService</span>.<span class="step">updateDocument</span>(docId, dto)
+        │
+        ├─ <span class="svc">RedisEmbeddingStore</span>.<span class="step">removeByDocId</span>(docId)
+        │     └─ <span class="comment">(同 3.2 删除链路)</span>
+        │
+        └─ <span class="svc">IngestionPipeline</span>.<span class="step">ingest</span>(text, metadata)
+              └─ <span class="comment">(同 3.1 上传链路，复用 docId)</span></div>
+
+<h3>3.4 批量上传</h3>
+<div class="chain"><span class="ctrl">KnowledgeBaseController</span>.<span class="step">uploadDocuments</span>(dtos)
+  │
+  └─ <span class="svc">KnowledgeService</span>.<span class="step">uploadDocuments</span>(dtos)
+        │
+        └─ <span class="kw">for each</span> dto:
+              └─ <span class="svc">KnowledgeService</span>.<span class="step">uploadDocument</span>(dto)  <span class="comment">→ 同 3.1</span></div>
+
+<h3>3.5 依赖关系矩阵</h3>
+<div class="chain"><span class="kw">KnowledgeService</span>
+  ├── <span class="dep">IngestionPipeline</span>       <span class="comment">(文档摄取)</span>
+  └── <span class="dep">RedisEmbeddingStore</span>    <span class="comment">(向量存储, 用于删除)</span>
+
+<span class="kw">IngestionPipeline</span>
+  ├── <span class="dep">EmbeddingModel</span>         <span class="comment">(千问 DashScope)</span>
+  └── <span class="dep">RedisEmbeddingStore</span>    <span class="comment">(向量存储, 用于写入)</span>
+
+<span class="kw">RedisEmbeddingStore</span>
+  └── <span class="dep">JedisPooled</span>             <span class="comment">(Jedis 6.x → Redis Stack RediSearch)</span></div>
+
+
+<!-- ════════════════════════════════════════ -->
+<h2>初始化链：容器启动时</h2>
+<div class="chain"><span class="kw">Spring Boot 启动</span>
+  │
+  ├─ <span class="svc">RagConfig</span> → 创建 <span class="dep">JedisPooled</span> Bean
+  │     └─ <span class="comment">连接 Redis Stack (host:port, 读取 spring.data.redis.*)</span>
+  │
+  └─ <span class="svc">RagConfig</span> → 创建 <span class="dep">RedisEmbeddingStore</span> Bean
+        └─ <span class="kw">new</span> RedisEmbeddingStore(jedis, indexName, prefix, dimension)
+              └─ <span class="comment">ensureIndexExists()</span>
+                    ├─ <span class="ext">Jedis</span>.<span class="step">ftInfo</span>(indexName) → <span class="s">成功</span> <span class="comment">→ "索引已存在"</span>
+                    └─ <span class="ext">Jedis</span>.<span class="step">ftInfo</span>(indexName) → <span class="step">异常</span>
+                          └─ <span class="comment">createIndex()</span>
+                                └─ <span class="ext">Jedis</span>.<span class="step">ftCreate</span>(indexName, options, schema)
+                                      └─ <span class="dep">Redis Stack</span> <span class="comment">→ HNSW 向量索引就绪</span></div>
+
+
+<!-- ════════════════════════════════════════ -->
+<h2>全局依赖拓扑</h2>
+
+<div class="chain"><span class="comment">═══════════ 外部依赖 ═══════════</span>
+<span class="dep">阿里云 DashScope</span> ───── 千问 chat-model (qwen3.6-flash)
+                    ───── 千问 embedding-model (text-embedding-v3)
+
+<span class="dep">Redis Stack</span> ────────── RediSearch KNN 向量检索
+                    ───── Hash 存储 (向量 + 文本 + 元数据)
+
+<span class="dep">elderly-medicine :8084</span> ── 药品清单 + 用药记录 (Feign)
+
+<span class="dep">elderly-remind :8085</span> ─── 提醒任务 (Feign)
+
+<span class="comment">═══════════ 内部服务 ═══════════</span>
+<span class="svc">RedisEmbeddingStore</span> ─── 实现 EmbeddingStore 接口
+    <span class="arrow">▲ 被调用者:</span> RagService(检索), IngestionPipeline(写入), KnowledgeService(删除)
+
+<span class="svc">IngestionPipeline</span> ───── 文档摄取管道
+    <span class="arrow">▲ 被调用者:</span> KnowledgeService
+    <span class="arrow">▼ 调用:</span> EmbeddingModel, RedisEmbeddingStore
+
+<span class="svc">KnowledgeService</span> ────── 知识库 CRUD
+    <span class="arrow">▲ 被调用者:</span> KnowledgeBaseController
+    <span class="arrow">▼ 调用:</span> IngestionPipeline, RedisEmbeddingStore
+
+<span class="svc">RagService</span> ──────────── RAG 编排
+    <span class="arrow">▲ 被调用者:</span> RagAssistantController
+    <span class="arrow">▼ 调用:</span> EmbeddingModel, RedisEmbeddingStore, MedicalContextBuilder, MedicalAssistant
+
+<span class="svc">MedicalContextBuilderImpl</span> ── 上下文构建
+    <span class="arrow">▲ 被调用者:</span> AssistantController, RagService
+    <span class="arrow">▼ 调用:</span> MedicineFeignClient, RemindFeignClient
+
+<span class="svc">MedicalAssistant</span> ────── @AiService
+    <span class="arrow">▲ 被调用者:</span> AssistantController, RagService
+    <span class="arrow">▼ 调用:</span> DashScope ChatModel
+
+<span class="comment">═══════════ 控制器 ═══════════</span>
+<span class="ctrl">AssistantController</span> ──── 普通问答
+    <span class="arrow">▼ 调用:</span> MedicalContextBuilder, MedicalAssistant
+
+<span class="ctrl">RagAssistantController</span> ─ RAG 问答
+    <span class="arrow">▼ 调用:</span> RagService, SecurityUtil
+
+<span class="ctrl">KnowledgeBaseController</span> ─ 知识库管理
+    <span class="arrow">▼ 调用:</span> KnowledgeService</div>
+
+<hr style="margin:48px 0;border-top:1px solid var(--c2);">
+<p style="text-align:center;color:var(--t2);">📄 调用链完毕</p>
+
+</main>
+</body>
+</html>

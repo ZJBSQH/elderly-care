@@ -16,14 +16,20 @@ public class SecurityConfig extends BaseSecurityConfig {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
+    /**
+     * 注册JWT认证过滤器
+     */
     @Override
     protected JwtAuthenticationFilter jwtAuthenticationFilter() {
         return jwtAuthenticationFilter;
     }
 
 
+    /**
+     * 返回认证服务允许匿名访问的路径列表
+     */
     @Override
     protected String[] permitAllPaths() {
-        return new String[]{"/auth/sms", "/auth/register", "/auth/login", "/auth/password/reset", "/auth/user/**","/user/elder/create","/user/elder//byUserId"};
+        return new String[]{"/auth/sms", "/auth/register", "/auth/login", "/auth/password/reset", "/auth/user/**","/user/elder/create","/user/elder/byUserId"};
     }
 }

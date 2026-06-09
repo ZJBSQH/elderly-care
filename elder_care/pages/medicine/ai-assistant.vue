@@ -12,6 +12,12 @@
         <text class="quick-desc">咨询用药时间、副作用、注意事项等</text>
         <text class="quick-arrow">→</text>
       </view>
+      <view class="quick-card" @click="goToHealthChat">
+        <text class="quick-icon">🧠</text>
+        <text class="quick-title">健康知识问答</text>
+        <text class="quick-desc">基于医学知识库的智能问答</text>
+        <text class="quick-arrow">→</text>
+      </view>
       <view class="quick-card" @click="goToTodayAdvice">
         <text class="quick-icon">📋</text>
         <text class="quick-title">今日用药建议</text>
@@ -30,6 +36,10 @@
 
 <script setup>
 function goToChat() {
+  uni.navigateTo({ url: '/pages/ai/chat' })
+}
+function goToHealthChat() {
+  // 默认进入 RAG 模式的聊天页
   uni.navigateTo({ url: '/pages/ai/chat' })
 }
 function goToTodayAdvice() {

@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+#偏好
+所有说明、注释必须使用中文。
+
+所有方法的核心部分必须添加注释，说明其用途和关键逻辑。
+
+代码要求简洁，例如使用 BeanUtil.copyProperties() 将前端参数封装到实体中。
+
+对于可复用的方法：
+
+仅在单个微服务内部使用的，封装到该微服务的 util 包中。
+
+多个微服务共用的，封装到 elderly-common 模块中。
+
 ## Project Overview
 
 老年护理云平台 (Elderly Care Cloud Platform) — a Spring Boot microservices system for elderly care management, including health tracking, medication reminders, news, and user management.
@@ -37,7 +50,7 @@ docker-compose down
 
 | Service | Port | Credentials / Notes |
 |---------|------|---------------------|
-| MySQL 8.0 | 13306 | root / Zheng666 |
+| MySQL 8.0 | 13306 | root / 见 `.env` 中的 `MYSQL_ROOT_PASSWORD` |
 | Redis 7.0 | 6379 | default |
 | Nacos 3.2.1 | 8848 (API/gRPC), 9848 (gRPC), **8080 (Console)** | Standalone mode, console at `http://localhost:8080/` |
 | Sentinel | 8858 | **Currently disabled** (image pull failed) |
@@ -75,6 +88,31 @@ The system is designed as **13 modules** — 4 common libraries + 1 gateway + 7 
 - **Service ↔ Service**: OpenFeign + LoadBalancer, all Feign interfaces return `Result<T>`, callers unwrap via `.getData()`
 - **Auth → User**: Feign `AuthFeignClient` (in elderly-user) calls auth for user lookup by phone/id
 - **AI → Medicine/Remind**: Feign `MedicineFeignClient` + `RemindFeignClient` (in elderly-ai)
+
+## Frontend (`elder_care/`)
+
+uni-app (Vue 3) 跨平台前端，编译目标包括 H5、微信小程序、Android/iOS App。
+
+- **框架**: uni-app + Vue 3 + Pinia (状态管理)
+- **HTTP 封装**: `utils/request.js` — 基于 `uni.request`，自动注入 Bearer Token，自动解包 `Result<T>` (code===200 时直接返回 `data`)，401/403 清除 Token 并跳转登录页
+- **API 模块**: `api/*.js` — 每个后端服务对应一个 API 文件 (auth.js, medicine.js, health.js, news.js, remind.js, admin.js, family.js, ai.js, ai-assistant.js)
+- **页面目录**: `pages/` 下按功能划分 — login, home, medicine, health, news, profile, family, ai, admin
+- **TabBar**: 首页 / 用药 / 健康 / 资讯 / 我的
+- **BASE_URL**: `http://localhost:8090` (uni-app 开发服务器端口，实际请求需代理到 Gateway 8080)
+
+### 页面路由一览
+
+| 功能 | 页面路径 | 说明 |
+|------|---------|------|
+| 登录/注册 | `pages/login/login`, `pages/login/register`, `pages/login/forgot` | 用户认证 |
+| 首页 | `pages/home/index` | 主入口 |
+| 用药管理 | `pages/medicine/today`, `add`, `record`, `statistics`, `remind-manage` | 用药计划/记录/统计/提醒 |
+| AI 助手 | `pages/medicine/ai-assistant`, `pages/ai/chat` | SSE 流式 AI 对话 |
+| 健康管理 | `pages/health/index`, `record`, `history`, `trend` | 健康数据录入/趋势 |
+| 资讯 | `pages/news/index`, `detail` | 健康知识浏览 |
+| 个人中心 | `pages/profile/index`, `edit`, `password`, `emergency`, `family-bind` | 用户信息管理 |
+| 家属端 | `pages/family/home`, `elder-detail`, `bind`, `remote-medicine` | 家属绑定/远程管理 |
+| 管理后台 | `pages/admin/login`, `dashboard`, `user-list`, `news-list`, `news-publish`, `announcement`, `system-config` | 管理员功能 |
 
 ### Security Architecture
 

@@ -4,7 +4,7 @@
 <mapper namespace="com.elderlycare.auth.mapper.UserMapper">
 
     <select id="selectByPhone" resultType="com.elderlycare.auth.entity.User">
-        SELECT * FROM user WHERE phone = #{phone}
+        SELECT * FROM `user` WHERE phone = #{phone}
     </select>
 
 </mapper>

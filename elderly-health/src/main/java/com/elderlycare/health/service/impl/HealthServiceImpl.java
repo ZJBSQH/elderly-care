@@ -1,9 +1,13 @@
 package com.elderlycare.health.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.elderlycare.common.core.exception.BusinessException;
 import com.elderlycare.common.core.result.Result;
+import com.elderlycare.common.core.util.BeanUtil;
 import com.elderlycare.health.dto.HealthDTO;
 import com.elderlycare.health.dto.HealthErrorCode;
+import com.elderlycare.health.dto.HealthQuery;
 import com.elderlycare.health.entity.Health;
 import com.elderlycare.health.mapper.HealthMapper;
 import com.elderlycare.health.service.HealthService;
@@ -32,6 +36,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class HealthServiceImpl implements HealthService {
 
+    /** 健康记录 Mapper */
     private final HealthMapper healthMapper;
 
     /**
@@ -107,8 +112,20 @@ public class HealthServiceImpl implements HealthService {
     }
 
     @Override
-    public Result<List<HealthVO>> getHistoryRecords(Integer elderId, LocalDateTime start, LocalDateTime end) {
-        List<Health> records = healthMapper.selectByDateRange(elderId, start, end);
+    public Result<List<HealthVO>> getHistoryRecords(HealthQuery query) {
+        List<Health> records;
+        if (query.getPageNum() > 0 && query.getPageSize() > 0) {
+            com.baomidou.mybatisplus.extension.plugins.pagination.Page<Health> pageParam =
+                    new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(query.getPageNum(), query.getPageSize());
+            LambdaQueryWrapper<Health> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(Health::getElderId, query.getElderId());
+            if (query.getStartDate() != null) wrapper.ge(Health::getRecordTime, query.getStartDate());
+            if (query.getEndDate() != null) wrapper.le(Health::getRecordTime, query.getEndDate());
+            wrapper.orderByDesc(Health::getRecordTime);
+            records = healthMapper.selectPage(pageParam, wrapper).getRecords();
+        } else {
+            records = healthMapper.selectByDateRange(query.getElderId(), query.getStartDate(), query.getEndDate());
+        }
         List<HealthVO> voList = records.stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
@@ -167,16 +184,14 @@ public class HealthServiceImpl implements HealthService {
     public Result<HealthVO> updateRecord(Long id, HealthDTO healthDTO) {
         Health existing = healthMapper.selectById(id);
         if (existing == null) {
-            return Result.error(HealthErrorCode.HEALTH_RECORD_NOT_EXIST.getCode(),
-                    HealthErrorCode.HEALTH_RECORD_NOT_EXIST.getMessage());
+            throw new BusinessException(HealthErrorCode.HEALTH_RECORD_NOT_EXIST);
         }
-        if (healthDTO.getBloodPressure() != null) existing.setBloodPressure(healthDTO.getBloodPressure());
-        if (healthDTO.getBloodSugar() != null) existing.setBloodSugar(healthDTO.getBloodSugar());
-        if (healthDTO.getHeartRate() != null) existing.setHeartRate(healthDTO.getHeartRate());
-        if (healthDTO.getWeight() != null) existing.setWeight(healthDTO.getWeight());
-        // 重新计算预警标识
-        boolean abnormal = isAbnormal(healthDTO);
-        existing.setWarningFlag(abnormal ? 1 : 0);
+        Integer originalElderId = healthDTO.getElderId();
+        healthDTO.setElderId(null);
+        BeanUtil.copyNonNullProperties(healthDTO, existing);
+        healthDTO.setElderId(originalElderId);
+        // 基于合并后的完整数据重新计算预警标识
+        existing.setWarningFlag(isAbnormalFromEntity(existing) ? 1 : 0);
         healthMapper.updateById(existing);
         log.info("更新健康记录成功，id: {}, warningFlag: {}", id, existing.getWarningFlag());
         return Result.success(toVO(existing), "健康记录更新成功");
@@ -187,8 +202,7 @@ public class HealthServiceImpl implements HealthService {
     public Result<Void> deleteRecord(Long id) {
         Health health = healthMapper.selectById(id);
         if (health == null) {
-            return Result.error(HealthErrorCode.HEALTH_RECORD_NOT_EXIST.getCode(),
-                    HealthErrorCode.HEALTH_RECORD_NOT_EXIST.getMessage());
+            throw new BusinessException(HealthErrorCode.HEALTH_RECORD_NOT_EXIST);
         }
         healthMapper.deleteById(id);
         log.info("删除健康记录成功，id: {}", id);
@@ -215,8 +229,7 @@ public class HealthServiceImpl implements HealthService {
     public Result<Void> markAlertRead(Long id) {
         Health health = healthMapper.selectById(id);
         if (health == null) {
-            return Result.error(HealthErrorCode.HEALTH_RECORD_NOT_EXIST.getCode(),
-                    HealthErrorCode.HEALTH_RECORD_NOT_EXIST.getMessage());
+            throw new BusinessException(HealthErrorCode.HEALTH_RECORD_NOT_EXIST);
         }
         health.setIsRead(1);
         healthMapper.updateById(health);
@@ -226,12 +239,12 @@ public class HealthServiceImpl implements HealthService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> markAllAlertsRead(Integer elderId) {
-        List<Health> unreadList = healthMapper.selectUnreadAlerts(elderId);
-        for (Health health : unreadList) {
-            health.setIsRead(1);
-            healthMapper.updateById(health);
-        }
-        log.info("老人 {} 的全部预警已标记已读，共 {} 条", elderId, unreadList.size());
+        healthMapper.update(null, new LambdaUpdateWrapper<Health>()
+                .eq(Health::getElderId, elderId)
+                .eq(Health::getWarningFlag, 1)
+                .eq(Health::getIsRead, 0)
+                .set(Health::getIsRead, 1));
+        log.info("老人 {} 的全部预警已标记已读", elderId);
         return Result.success();
     }
 
@@ -288,6 +301,46 @@ public class HealthServiceImpl implements HealthService {
     }
 
     /**
+     * 基于合并后的实体数据判断健康指标是否异常
+     *
+     * @param health 健康记录实体（含完整字段）
+     * @return true-异常, false-正常
+     */
+    private boolean isAbnormalFromEntity(Health health) {
+        if (health.getBloodPressure() != null && !health.getBloodPressure().isEmpty()) {
+            try {
+                String[] parts = health.getBloodPressure().split("/");
+                if (parts.length == 2) {
+                    int systolic = Integer.parseInt(parts[0].trim());
+                    int diastolic = Integer.parseInt(parts[1].trim());
+                    if (systolic < SYSTOLIC_MIN || systolic > SYSTOLIC_MAX
+                            || diastolic < DIASTOLIC_MIN || diastolic > DIASTOLIC_MAX) {
+                        return true;
+                    }
+                }
+            } catch (NumberFormatException e) {
+                log.warn("血压格式解析失败: {}", health.getBloodPressure());
+            }
+        }
+        if (health.getBloodSugar() != null) {
+            if (health.getBloodSugar() < BLOOD_SUGAR_MIN || health.getBloodSugar() > BLOOD_SUGAR_MAX) {
+                return true;
+            }
+        }
+        if (health.getHeartRate() != null) {
+            if (health.getHeartRate() < HEART_RATE_MIN || health.getHeartRate() > HEART_RATE_MAX) {
+                return true;
+            }
+        }
+        if (health.getWeight() != null) {
+            if (health.getWeight() < WEIGHT_MIN || health.getWeight() > WEIGHT_MAX) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * 将实体转换为视图对象
      *
      * @param health 健康记录实体
@@ -295,14 +348,7 @@ public class HealthServiceImpl implements HealthService {
      */
     private HealthVO toVO(Health health) {
         HealthVO vo = new HealthVO();
-        vo.setId(health.getId());
-        vo.setElderId(health.getElderId());
-        vo.setBloodPressure(health.getBloodPressure());
-        vo.setBloodSugar(health.getBloodSugar());
-        vo.setHeartRate(health.getHeartRate());
-        vo.setWeight(health.getWeight());
-        vo.setWarningFlag(health.getWarningFlag());
-        vo.setRecordTime(health.getRecordTime());
+        BeanUtil.copyProperties(health, vo);
         return vo;
     }
 

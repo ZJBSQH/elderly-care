@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LangChain4j RAG 集成教学 — 从入门到异常处理精讲</title>
+<style>
+/* ═════════════════════════ 全局变量 ═════════════════════════ */
+:root {
+  --bg: #f4f9f9;
+  --sidebar-bg: #e8f4f8;
+  --card-bg: #ffffff;
+  --text: #2c3e50;
+  --text-light: #5a6c7d;
+  --border: #d4e8e8;
+  --green-light: #e8f5e9;
+  --green: #2e7d32;
+  --green-dark: #1b5e20;
+  --blue-light: #e3f2fd;
+  --blue: #1565c0;
+  --blue-dark: #0d47a1;
+  --red: #c62828;
+  --red-light: #ffebee;
+  --red-bg: #fff5f5;
+  --orange: #e65100;
+  --code-bg: #f8faf9;
+  --code-border: #c8e0e0;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-hover: 0 4px 12px rgba(0,0,0,0.08);
+  --radius: 10px;
+  --transition: 0.2s ease;
+}
+
+/* ═════════════════════════ 基础排版 ═════════════════════════ */
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+
+body {
+  font-family: 'Segoe UI','PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.8;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ═════════════════════════ 左侧目录 ═════════════════════════ */
+.sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  overflow-y: auto;
+  padding: 24px 16px;
+  z-index: 100;
+  box-shadow: var(--shadow);
+}
+
+.sidebar-title {
+  font-size: 1.1em;
+  font-weight: 700;
+  color: var(--green-dark);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--green);
+  text-align: center;
+}
+
+.sidebar-section {
+  margin-bottom: 8px;
+}
+
+.sidebar-section-title {
+  font-size: 0.82em;
+  font-weight: 700;
+  color: var(--blue);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 8px;
+  margin-top: 12px;
+  cursor: default;
+}
+
+.toc-link {
+  display: block;
+  padding: 5px 8px 5px 16px;
+  font-size: 0.85em;
+  color: var(--text-light);
+  text-decoration: none;
+  border-radius: 4px;
+  transition: var(--transition);
+  border-left: 2px solid transparent;
+}
+
+.toc-link:hover,
+.toc-link.active {
+  color: var(--green-dark);
+  background: var(--green-light);
+  border-left-color: var(--green);
+}
+
+.toc-link.sub { padding-left: 32px; font-size: 0.8em; }
+
+.toc-badge {
+  display: inline-block;
+  font-size: 0.7em;
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.toc-badge.important { background: var(--red-light); color: var(--red); font-weight: 700; }
+.toc-badge.note { background: var(--blue-light); color: var(--blue); }
+
+/* ═════════════════════════ 主内容区 ═════════════════════════ */
+.main {
+  margin-left: 280px;
+  padding: 32px 40px;
+  max-width: 1100px;
+  width: 100%;
+}
+
+/* 头部 */
+.page-header {
+  text-align: center;
+  padding: 40px 20px 32px;
+  margin-bottom: 32px;
+  background: linear-gradient(135deg, var(--green-light), var(--blue-light));
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.page-header h1 { font-size: 2em; color: var(--green-dark); margin-bottom: 6px; }
+.page-header .subtitle { font-size: 1em; color: var(--blue); }
+.page-header .meta { margin-top: 14px; display:flex; justify-content:center; gap:16px; flex-wrap:wrap; }
+.page-header .meta span {
+  background: #fff;
+  padding: 5px 14px;
+  border-radius: 16px;
+  font-size: 0.82em;
+  color: var(--text-light);
+  border: 1px solid var(--border);
+}
+
+/* 内容卡片 */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow);
+  transition: var(--shadow-hover);
+}
+.card:hover { box-shadow: var(--shadow-hover); }
+
+.card h2 {
+  font-size: 1.35em;
+  color: var(--green-dark);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--green-light);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card h3 {
+  font-size: 1.1em;
+  color: var(--blue-dark);
+  margin: 20px 0 10px;
+  padding-left: 10px;
+  border-left: 3px solid var(--blue);
+}
+
+.card h4 {
+  font-size: 0.95em;
+  color: var(--text);
+  margin: 14px 0 8px;
+}
+
+/* 代码块 */
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  font-family: 'Cascadia Code','Fira Code','JetBrains Mono','Consolas',monospace;
+  font-size: 0.85em;
+  line-height: 1.7;
+  margin: 12px 0;
+  position: relative;
+}
+
+pre .lang-label {
+  position: absolute;
+  top: 6px; right: 12px;
+  font-size: 0.75em;
+  color: #999;
+  font-family: sans-serif;
+}
+
+code {
+  font-family: 'Cascadia Code','Fira Code','JetBrains Mono','Consolas',monospace;
+  font-size: 0.9em;
+  background: var(--green-light);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+pre code { background: none; padding: 0; }
+
+/* 重要提示 */
+.important {
+  background: var(--red-bg);
+  border: 1px solid #ffcdd2;
+  border-left: 4px solid var(--red);
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin: 14px 0;
+  color: #5d1010;
+}
+
+.important::before {
+  content: "⚠ 重点 ";
+  font-weight: 700;
+  color: var(--red);
+  font-size: 0.9em;
+}
+
+/* 提示框 */
+.tip {
+  background: var(--blue-light);
+  border: 1px solid #bbdefb;
+  border-left: 4px solid var(--blue);
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin: 14px 0;
+}
+
+.tip::before {
+  content: "💡 提示 ";
+  font-weight: 700;
+  color: var(--blue);
+  font-size: 0.9em;
+}
+
+/* 对比表 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 0.9em;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  text-align: left;
+}
+th { background: var(--blue-light); color: var(--blue-dark); font-weight: 700; }
+tr:nth-child(even) { background: #fafdfd; }
+
+/* 流程图 */
+.flow {
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-family: monospace;
+  white-space: pre;
+  overflow-x: auto;
+  font-size: 0.82em;
+  line-height: 1.8;
+  margin: 12px 0;
+}
+
+/* 标签 */
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.78em;
+  margin: 0 2px;
+}
+.tag-green { background: var(--green-light); color: var(--green-dark); }
+.tag-blue  { background: var(--blue-light);  color: var(--blue-dark); }
+.tag-red   { background: var(--red-light);   color: var(--red); }
+
+/* 列表 */
+.card ul, .card ol { padding-left: 20px; }
+.card li { margin: 6px 0; }
+
+/* 响应式 */
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding: 16px; }
+}
+
+/* 打印 */
+@media print {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  body { background: #fff; }
+  .card { box-shadow: none; break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ 左侧目录 ═══════════════════ -->
+<nav class="sidebar">
+  <div class="sidebar-title">📖 LangChain4j RAG</div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">一、核心概念</div>
+    <a href="#s1" class="toc-link">1.1 什么是RAG</a>
+    <a href="#s2" class="toc-link">1.2 LangChain4j中的RAG组件</a>
+    <a href="#s3" class="toc-link">1.3 两种集成模式对比</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">二、Spring Boot集成</div>
+    <a href="#s4" class="toc-link">2.1 Maven依赖 <span class="toc-badge important">重点</span></a>
+    <a href="#s5" class="toc-link">2.2 配置文件详解</a>
+    <a href="#s6" class="toc-link">2.3 @AiService接口定义</a>
+    <a href="#s7" class="toc-link">2.4 EmbeddingStore接口 <span class="toc-badge important">重点</span></a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">三、RAG核心管道</div>
+    <a href="#s8" class="toc-link">3.1 文档切分</a>
+    <a href="#s9" class="toc-link">3.2 向量嵌入</a>
+    <a href="#s10" class="toc-link">3.3 KNN语义检索</a>
+    <a href="#s11" class="toc-link">3.4 Prompt增强</a>
+    <a href="#s12" class="toc-link">3.5 端到端数据流</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">四、异常处理精讲</div>
+    <a href="#s13" class="toc-link">4.1 异常分层模型 <span class="toc-badge important">核心</span></a>
+    <a href="#s14" class="toc-link">4.2 Embedding异常</a>
+    <a href="#s15" class="toc-link">4.3 检索异常</a>
+    <a href="#s16" class="toc-link">4.4 存储异常</a>
+    <a href="#s17" class="toc-link">4.5 Feign调用异常</a>
+    <a href="#s18" class="toc-link">4.6 AI调用异常</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">五、实战案例</div>
+    <a href="#s19" class="toc-link">5.1 Redis向量存储实现</a>
+    <a href="#s20" class="toc-link">5.2 降级策略设计</a>
+    <a href="#s21" class="toc-link">5.3 EmbeddingStoreListener</a>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">六、常见问题与反模式</div>
+    <a href="#s22" class="toc-link">6.1 10大反模式 <span class="toc-badge important">避坑</span></a>
+  </div>
+</nav>
+
+<!-- ═══════════════════ 主内容 ═══════════════════ -->
+<main class="main">
+
+<!-- 页头 -->
+<div class="page-header">
+  <h1>🧠 LangChain4j RAG 集成教学</h1>
+  <p class="subtitle">Spring Boot 集成 · 文档摄取 · 向量检索 · 异常处理精讲</p>
+  <div class="meta">
+    <span>📦 LangChain4j 最新版</span>
+    <span>🍃 Spring Boot 3/4</span>
+    <span>☕ Java 17+</span>
+    <span>⏱ 两小时复习计划</span>
+  </div>
+</div>
+
+<!-- ═══════════════ 一、核心概念 ═══════════════ -->
+
+<!-- 1.1 -->
+<div class="card" id="s1">
+<h2>📌 1.1 什么是 RAG（检索增强生成）</h2>
+
+<p>RAG = <b>R</b>etrieval <b>A</b>ugmented <b>G</b>eneration（检索增强生成），核心思想是：<b>给大模型"开卷考试"而非"闭卷作答"</b>。</p>
+
+<div class="flow">
+用户问题: "布洛芬和阿司匹林能一起吃吗？"
+    │
+    ▼
+① 向量化 ─── EmbeddingModel.embed(question) ──→ 1024维向量
+    │
+    ▼
+② 检索 ──── EmbeddingStore.search(queryVector) ──→ Top-K 相似知识片段
+    │                                              (来自医学知识库)
+    ▼
+③ 增强 ──── 参考知识 + 用户数据 + 问题 ──→ 组装增强Prompt
+    │
+    ▼
+④ 生成 ──── ChatModel.generate(augmentedPrompt) ──→ 有据可依的AI回答
+</div>
+
+<div class="tip">
+  <b>RAG解决了LLM三大痛点：</b><br>
+  ① <b>幻觉</b> — 模型凭空编造，RAG用真实文档约束回答<br>
+  ② <b>知识过时</b> — 模型训练数据有截止日期，RAG可检索最新文档<br>
+  ③ <b>领域盲区</b> — 通用模型不了解私有医学知识，RAG补充专属知识库
+</div>
+</div>
+
+<!-- 1.2 -->
+<div class="card" id="s2">
+<h2>🧩 1.2 LangChain4j 中的 RAG 核心组件</h2>
+
+<table>
+<tr><th>组件</th><th>接口/类</th><th>作用</th><th>常见实现</th></tr>
+<tr>
+  <td><b>嵌入模型</b></td>
+  <td><code>EmbeddingModel</code></td>
+  <td>将文本转为向量</td>
+  <td>DashScope / OpenAI / HuggingFace / Ollama</td>
+</tr>
+<tr>
+  <td><b>向量存储</b></td>
+  <td><code>EmbeddingStore&lt;TextSegment&gt;</code></td>
+  <td>存储与检索向量</td>
+  <td>Redis / PgVector / Milvus / Qdrant / InMemory</td>
+</tr>
+<tr>
+  <td><b>文档切分器</b></td>
+  <td><code>DocumentSplitter</code></td>
+  <td>大文档 → 小片段</td>
+  <td>DocumentSplitters.recursive()</td>
+</tr>
+<tr>
+  <td><b>内容检索器</b></td>
+  <td><code>ContentRetriever</code></td>
+  <td>执行检索逻辑</td>
+  <td>EmbeddingStoreContentRetriever</td>
+</tr>
+<tr>
+  <td><b>检索增强器</b></td>
+  <td><code>RetrievalAugmentor</code></td>
+  <td>高级RAG：查询变换+重排+注入</td>
+  <td>DefaultRetrievalAugmentor</td>
+</tr>
+<tr>
+  <td><b>摄取管道</b></td>
+  <td><code>EmbeddingStoreIngestor</code></td>
+  <td>端到端：切分→嵌入→存储</td>
+  <td>内置Builder模式</td>
+</tr>
+</table>
+</div>
+
+<!-- 1.3 -->
+<div class="card" id="s3">
+<h2>🔀 1.3 两种集成模式对比</h2>
+
+<h3>模式一：Naive RAG（ContentRetriever）</h3>
+<pre>// ✅ 简单直接，快速上手
+EmbeddingStore&lt;TextSegment&gt; embeddingStore = ...;
+EmbeddingModel embeddingModel = ...;
+
+ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
+    .embeddingStore(embeddingStore)
+    .embeddingModel(embeddingModel)
+    .maxResults(5)
+    .minScore(0.75)
+    .build();
+
+Assistant assistant = AiServices.builder(Assistant.class)
+    .chatModel(chatModel)
+    .contentRetriever(contentRetriever)
+    .build();</pre>
+
+<h3>模式二：Advanced RAG（RetrievalAugmentor）</h3>
+<pre>// ✅ 功能更强：查询变换、重排序、自定义注入策略
+RetrievalAugmentor retrievalAugmentor = DefaultRetrievalAugmentor.builder()
+    .queryTransformer(...)      // 查询改写（扩展、多角度）
+    .queryRouter(...)           // 路由到不同知识库
+    .contentAggregator(...)     // 多路结果聚合
+    .contentInjector(...)       // 自定义Prompt注入格式
+    .executor(...)              // 线程池配置
+    .build();
+
+Assistant assistant = AiServices.builder(Assistant.class)
+    .chatModel(chatModel)
+    .retrievalAugmentor(retrievalAugmentor)
+    .build();</pre>
+
+<div class="important">
+  <b>选择建议：</b>项目初期用 Naive RAG（ContentRetriever），需要查询改写、重排序或多知识库路由时升级到 Advanced RAG。两者不互斥，可以在不同 @AiService 接口中混用。
+</div>
+</div>
+
+<!-- ═══════════════ 二、Spring Boot集成 ═══════════════ -->
+
+<div class="card" id="s4">
+<h2>📦 2.1 Maven 依赖（完整配置）</h2>
+
+<div class="important">依赖版本由 Spring Boot Parent 或 BOM 统一管理，不要手动写版本号。</div>
+
+<pre>&lt;!-- LangChain4j 核心（Spring Boot 4 用 boot4-starter） --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;dev.langchain4j&lt;/groupId&gt;
+    &lt;artifactId&gt;langchain4j-spring-boot4-starter&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+&lt;!-- 千问 DashScope 模型支持（聊天 + 嵌入） --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;dev.langchain4j&lt;/groupId&gt;
+    &lt;artifactId&gt;langchain4j-community-dashscope-spring-boot-starter&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+&lt;!-- Reactor 桥接：Flux 流式输出 --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;dev.langchain4j&lt;/groupId&gt;
+    &lt;artifactId&gt;langchain4j-reactor&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+&lt;!-- Jedis 客户端（Redis Stack 向量存储） --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;redis.clients&lt;/groupId&gt;
+    &lt;artifactId&gt;jedis&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+&lt;!-- WebFlux（SSE 流式推送） --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-webflux&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+&lt;!-- Bean Validation（DTO 校验） --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-validation&lt;/artifactId&gt;
+&lt;/dependency&gt;</pre>
+
+<div class="tip">
+  <b>依赖关系图：</b><br>
+  <code>langchain4j-spring-boot4-starter</code>（核心自动配置）<br>
+  ├── <code>langchain4j-community-dashscope-spring-boot-starter</code>（千问模型）<br>
+  ├── <code>langchain4j-reactor</code>（Flux桥接）<br>
+  └── <code>spring-boot-starter-webflux</code>（响应式Web）
+</div>
+</div>
+
+<div class="card" id="s5">
+<h2>⚙️ 2.2 配置文件详解</h2>
+
+<pre>spring:
+  application:
+    name: elderly-ai
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_HOST:localhost}:8848
+      config:
+        server-addr: ${NACOS_HOST:localhost}:8848
+        file-extension: yaml
+
+server:
+  port: 8087
+
+# ═══════════ LangChain4j 自动配置 ═══════════
+langchain4j:
+  community:
+    dashscope:
+      # ─── 普通对话模型 ───
+      chat-model:
+        api-key: ${AI_DASHSCOPE_API_KEY}
+        model-name: qwen3.6-flash
+        temperature: 0.4        # 医疗场景建议 0.1~0.3
+        timeout: 60s
+        log-requests: true
+        log-responses: true
+      # ─── 流式对话模型（返回 Flux 时自动选用） ───
+      streaming-chat-model:
+        api-key: ${AI_DASHSCOPE_API_KEY}
+        model-name: qwen3.6-flash
+      # ─── 嵌入模型 ───
+      embedding-model:
+        api-key: ${AI_DASHSCOPE_API_KEY}
+        model-name: text-embedding-v3
+        dimensions: 1024        # 支持 1536/1024/768/512/256/128/64
+        timeout: 30s
+        log-requests: false
+        log-responses: false
+
+# ═══════════ 自定义 RAG 配置 ═══════════
+elderly:
+  rag:
+    chunk:
+      max-size: 500            # 每块最大字符数
+      max-overlap: 50          # 相邻块重叠字符数
+    retrieval:
+      max-results: 5           # KNN 返回 Top-K
+      min-score: 0.65          # COSINE 最低相似度阈值
+    embedding-store:
+      index-name: idx_rag_docs # RediSearch 索引名
+      prefix: "rag:doc:"       # Redis Key 前缀
+      dimension: 1024          # 向量维度，必须与嵌入模型一致！</pre>
+
+<div class="important">
+  <b>关键配置约束：</b><br>
+  ① <code>elderly.rag.embedding-store.dimension</code>（1024）必须等于 <code>dimensions: 1024</code><br>
+  ② <code>streaming-chat-model</code> 和 <code>chat-model</code> 使用相同 model-name 是正常的——框架根据 @AiService 返回类型自动路由<br>
+  ③ API Key 使用环境变量 <code>${AI_DASHSCOPE_API_KEY}</code>，不要硬编码
+</div>
+</div>
+
+<div class="card" id="s6">
+<h2>🔌 2.3 @AiService 接口定义</h2>
+
+<h3>基础定义</h3>
+<pre>import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
+import dev.langchain4j.service.spring.AiService;
+import reactor.core.publisher.Flux;
+
+@AiService  // ← 关键注解：Spring Boot Starter 自动扫描并创建代理实现
+public interface MedicalAssistant {
+
+    @SystemMessage("""
+            You are a professional medical information assistant.
+            - Do NOT diagnose, prescribe, or provide personal medical advice.
+            - Always remind users to consult a licensed healthcare provider.
+            - Keep answers concise, factual, and easy to understand.
+            - 禁止使用 Markdown 语法。
+            """)
+
+    @UserMessage("{{question}}")
+    Flux&lt;String&gt; chat(@V("question") String userMessage);
+    //     ↑ 返回 Flux → 框架自动注入 streaming-chat-model
+    //     返回 String → 框架自动注入 chat-model
+}</pre>
+
+<h3>带 ContentRetriever 的 RAG 版本</h3>
+<pre>@AiService
+public interface RagAssistant {
+
+    @SystemMessage("""
+            你是一个基于知识库的医学助手。
+            请仅根据提供的【参考知识】回答，若知识不足请明确说明。
+            """)
+    Flux&lt;String&gt; answer(@V("question") String question);
+}
+
+// 在 @Configuration 中手动构建（因为需要注入 ContentRetriever）
+@Bean
+public RagAssistant ragAssistant(ChatModel chatModel,
+                                  EmbeddingModel embeddingModel,
+                                  EmbeddingStore&lt;TextSegment&gt; embeddingStore) {
+    ContentRetriever retriever = EmbeddingStoreContentRetriever.builder()
+            .embeddingStore(embeddingStore)
+            .embeddingModel(embeddingModel)
+            .maxResults(5)
+            .minScore(0.65)
+            .build();
+
+    return AiServices.builder(RagAssistant.class)
+            .streamingChatModel(streamingChatModel)
+            .contentRetriever(retriever)
+            .build();
+}</pre>
+
+<div class="important">
+  <b>Flux 返回类型的自动路由机制：</b><br>
+  LangChain4j 的 AIServiceFactory 代理在运行时检测方法返回类型：<br>
+  → 返回 <code>String</code>：注入 <code>chat-model</code> bean（同步）<br>
+  → 返回 <code>Flux&lt;String&gt;</code>：注入 <code>streaming-chat-model</code> bean（流式）<br>
+  <b>Flux 返回类型本身就是"路由开关"，无需额外注解。</b>
+</div>
+</div>
+
+<div class="card" id="s7">
+<h2>🗄️ 2.4 EmbeddingStore 接口详解</h2>
+
+<div class="important">这是 RAG 中最核心的接口——所有向量数据库集成必须实现此接口。理解它是自定义向量存储的基础。</div>
+
+<h3>完整接口定义</h3>
+<pre>public interface EmbeddingStore&lt;Embedded&gt; {
+
+    // ═══════════ 写入操作 ═══════════
+    String  add(Embedding embedding);
+    void    add(String id, Embedding embedding);
+    String  add(Embedding embedding, Embedded embedded);
+    List&lt;String&gt; addAll(List&lt;Embedding&gt; embeddings);
+    List&lt;String&gt; addAll(List&lt;Embedding&gt; embeddings, List&lt;Embedded&gt; embedded);
+
+    // ═══════════ 删除操作 ═══════════
+    void remove(String id);
+    void removeAll(Collection&lt;String&gt; ids);
+    void removeAll(Filter filter);  // 按条件删除
+    void removeAll();                // 清空
+
+    // ═══════════ 检索操作（核心） ═══════════
+    EmbeddingSearchResult&lt;Embedded&gt; search(EmbeddingSearchRequest request);
+}</pre>
+
+<h3>EmbeddingSearchRequest / EmbeddingSearchResult</h3>
+<pre>// 检索请求
+EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+    .queryEmbedding(queryEmbedding)  // 查询向量（由 EmbeddingModel 生成）
+    .maxResults(5)                   // 返回 Top-K
+    .minScore(0.65)                  // 最低相似度阈值（0~1）
+    .filter(...)                     // 可选：按元数据过滤
+    .build();
+
+// 检索结果
+EmbeddingSearchResult&lt;TextSegment&gt; result = embeddingStore.search(request);
+List&lt;EmbeddingMatch&lt;TextSegment&gt;&gt; matches = result.matches();
+
+for (EmbeddingMatch&lt;TextSegment&gt; match : matches) {
+    String id = match.embeddingId();      // 向量记录 ID
+    double score = match.score();          // 相似度 (0~1)
+    Embedding embedding = match.embedding(); // 原始向量
+    TextSegment segment = match.embedded();  // 文本片段（含元数据）
+}</pre>
+</div>
+
+<!-- ═══════════════ 三、RAG核心管道 ═══════════════ -->
+
+<div class="card" id="s8">
+<h2>✂️ 3.1 文档切分（Document Splitting）</h2>
+
+<h3>递归切分策略</h3>
+<pre>// DocumentSplitters.recursive() 的切分层级：
+// 段落（\n\n）→ 行（\n）→ 句子（。！？）→ 词（空格）→ 字符
+
+var splitter = DocumentSplitters.recursive(500, 50);
+//                                          ↑     ↑
+//                                    最大字符数  重叠字符数
+
+// 切分流程
+Document document = Document.from("这是一篇很长的医学文章...");
+List&lt;TextSegment&gt; segments = splitter.split(document);
+
+// 为每个片段注入元数据
+for (int i = 0; i &lt; segments.size(); i++) {
+    TextSegment seg = segments.get(i);
+    seg.metadata().put("chunk_index", i);
+    seg.metadata().put("doc_id", docId);
+}</pre>
+
+<h3>切分策略对比</h3>
+<table>
+<tr><th>策略</th><th>方法</th><th>适用场景</th></tr>
+<tr><td><b>递归切分</b></td><td><code>recursive(max, overlap)</code></td><td>✅ 通用文本（推荐）</td></tr>
+<tr><td>按段落切分</td><td><code>byParagraph(max, overlap)</code></td><td>结构清晰的长文</td></tr>
+<tr><td>按句子切分</td><td><code>bySentence(max, overlap)</code></td><td>短句密集型文本</td></tr>
+<tr><td>按字符切分</td><td><code>fixed(max, overlap)</code></td><td>无结构文本</td></tr>
+</table>
+
+<div class="tip">
+  <b>医学文档建议：</b>药品说明书的【适应症】【用法用量】【禁忌】等短句密集段落在 500 字符的 chunk 中可能混杂多个主题。可以考虑缩小 max-size 到 300，或使用按段落切分后再用按句子切分的组合策略。
+</div>
+</div>
+
+<div class="card" id="s9">
+<h2>🧮 3.2 向量嵌入（Embedding）</h2>
+
+<pre>// 单条嵌入
+Embedding embedding = embeddingModel.embed("布洛芬缓释胶囊").content();
+float[] vector = embedding.vector();  // 1024 维 float 数组
+
+// 批量嵌入（一次 HTTP 请求提交所有片段）
+List&lt;TextSegment&gt; segments = splitter.split(document);
+List&lt;Embedding&gt; embeddings = embeddingModel.embedAll(segments).content();
+//                             ↑ 注意：embedAll 是一次性全量提交！</pre>
+
+<div class="important">
+  <b>embedAll() 的风险：</b><br>
+  ① <b>一次性提交</b>：100 个片段 = 1 个 HTTP 请求，超时风险高<br>
+  ② <b>全有或全无</b>：API 返回中途失败时，不知道哪些成功了<br>
+  ③ <b>无断点续传</b>：失败后需要从头重试<br><br>
+  <b>改进方案 → 分批嵌入：</b>
+</div>
+
+<pre>// ✅ 分批嵌入（推荐）
+private List&lt;Embedding&gt; embedBatch(List&lt;TextSegment&gt; segments, int batchSize) {
+    List&lt;Embedding&gt; all = new ArrayList&lt;&gt;();
+    for (int i = 0; i &lt; segments.size(); i += batchSize) {
+        int end = Math.min(i + batchSize, segments.size());
+        List&lt;TextSegment&gt; batch = segments.subList(i, end);
+        try {
+            all.addAll(embeddingModel.embedAll(batch).content());
+            log.info("嵌入进度: {}/{}", end, segments.size());
+        } catch (Exception e) {
+            log.error("嵌入批次 [{}, {}) 失败: {}", i, end, e.getMessage());
+            // ← 可以重试，而非全量重来
+        }
+    }
+    return all;
+}</pre>
+</div>
+
+<div class="card" id="s10">
+<h2>🔍 3.3 KNN 语义检索</h2>
+
+<h3>检索流程</h3>
+<pre>// 步骤1: 问题向量化
+Embedding queryEmbedding = embeddingModel.embed(userQuestion).content();
+
+// 步骤2: 构建检索请求
+EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+    .queryEmbedding(queryEmbedding)
+    .maxResults(5)      // Top-5
+    .minScore(0.65)     // 最低相似度（COSINE: 1.0=完全相同, 0=无关）
+    .build();
+
+// 步骤3: 执行检索
+EmbeddingSearchResult&lt;TextSegment&gt; result = embeddingStore.search(request);
+
+// 步骤4: 处理结果
+for (EmbeddingMatch&lt;TextSegment&gt; match : result.matches()) {
+    double score = match.score();           // 相似度
+    TextSegment segment = match.embedded();  // 文本片段
+    String title = segment.metadata().getString("title");  // 元数据
+}</pre>
+
+<h3>Redis Stack (RediSearch) 的 KNN 查询语法</h3>
+<pre>// RediSearch 底层查询语法
+String query = "*=>[KNN " + maxResults + " @embedding $BLOB AS score]";
+//              ↑              ↑            ↑            ↑
+//              搜索所有文档    KNN算法     向量字段     参数占位符
+
+// 参数绑定
+FTSearchParams params = FTSearchParams.searchParams()
+    .addParam("BLOB", queryVectorBytes)  // 绑定 $BLOB 为实际字节数组
+    .dialect(2)
+    .limit(0, maxResults);
+
+SearchResult result = jedis.ftSearch(indexName, query, params);
+
+// Score 转换（COSINE 距离 → 相似度）
+double cosineDistance = Double.parseDouble(doc.getProperty("__score"));
+double similarity = 1.0 - cosineDistance;  // 距离0=完全相似→1.0, 距离2=完全相反→-1.0</pre>
+
+<div class="important">
+  <b>HNSW 索引创建（一次性）：</b>
+  <pre>Map&lt;String, Object&gt; vectorAttrs = new LinkedHashMap&lt;&gt;();
+vectorAttrs.put("TYPE", "FLOAT32");
+vectorAttrs.put("DIM", 1024);              // 必须等于嵌入模型维度
+vectorAttrs.put("DISTANCE_METRIC", "COSINE");
+vectorAttrs.put("EF_CONSTRUCTION", 200);   // HNSW 构建参数
+vectorAttrs.put("M", 16);                  // HNSW 连接数
+
+Schema schema = new Schema()
+    .addTextField("content", 1.0)
+    .addHNSWVectorField("embedding", vectorAttrs)
+    .addTagField("doc_id")
+    .addTagField("category");
+
+jedis.ftCreate(indexName, IndexOptions.defaultOptions()
+    .setDefinition(new IndexDefinition(IndexDefinition.Type.HASH)
+        .setPrefixes("rag:doc:")), schema);</pre>
+</div>
+</div>
+
+<div class="card" id="s11">
+<h2>📝 3.4 Prompt 增强（Augmented Prompt）</h2>
+
+<h3>增强 Prompt 的标准结构</h3>
+<pre>// 三种信息源的融合
+public String buildAugmentedPrompt(
+        List&lt;EmbeddingMatch&lt;TextSegment&gt;&gt; knowledgeDocs,  // 知识库检索结果
+        String personalContext,                              // 用户个人数据
+        String userQuestion) {                               // 用户原始问题
+
+    StringBuilder sb = new StringBuilder();
+
+    // ① 参考知识（来自向量知识库）
+    sb.append("【参考知识】请基于以下专业知识回答用户问题，");
+    sb.append("如果参考知识不足以回答，请明确说明：\n");
+    for (int i = 0; i &lt; knowledgeDocs.size(); i++) {
+        TextSegment seg = knowledgeDocs.get(i).embedded();
+        String source = seg.metadata().getString("title");
+        double score = knowledgeDocs.get(i).score();
+        sb.append(String.format(
+            "--- 参考资料%d (来源: %s, 相关度: %.2f) ---\n%s\n",
+            i + 1, source, score, seg.text()));
+    }
+
+    // ② 用户个人数据（来自业务系统）
+    sb.append("\n【用户个人数据】\n").append(personalContext);
+
+    // ③ 用户问题
+    sb.append("\n【用户问题】").append(userQuestion);
+    sb.append("\n\n请结合参考知识和用户个人数据，给出专业、安全、易懂的回答。");
+    sb.append("涉及用药安全时必须谨慎，建议咨询医生。");
+
+    return sb.toString();
+}</pre>
+
+<h3>Prompt 模板最佳实践</h3>
+<table>
+<tr><th>区块</th><th>内容</th><th>作用</th></tr>
+<tr><td>【参考知识】</td><td>向量检索的 Top-K 片段 + 来源标注</td><td>约束回答范围，减少幻觉</td></tr>
+<tr><td>【用户个人数据】</td><td>药品清单、用药记录、提醒任务</td><td>个性化上下文</td></tr>
+<tr><td>【用户问题】</td><td>原始自然语言问题</td><td>核心任务</td></tr>
+<tr><td>【输出约束】</td><td>不使用Markdown、安全警告</td><td>格式控制 + 责任规避</td></tr>
+</table>
+</div>
+
+<div class="card" id="s12">
+<h2>🔄 3.5 端到端数据流总览</h2>
+
+<div class="flow">
+                     ┌─────────────────────────┐
+                     │   用户提问                │
+                     │   "布洛芬和阿司匹林        │
+                     │    能一起吃吗？"           │
+                     └──────────┬──────────────┘
+                                │
+            ┌───────────────────┼───────────────────┐
+            │                   │                   │
+            ▼                   ▼                   ▼
+   ┌────────────────┐  ┌──────────────┐  ┌──────────────────┐
+   │ EmbeddingModel │  │ MedicalCtx   │  │ Feign Client      │
+   │ .embed()       │  │ Builder      │  │ (medicine/remind) │
+   │ 问题→向量       │  │ 个人数据上下文 │  │ 实时用药数据       │
+   └───────┬────────┘  └──────┬───────┘  └────────┬─────────┘
+           │                  │                    │
+           ▼                  │                    │
+   ┌──────────────┐           │                    │
+   │ Redis Stack  │           │                    │
+   │ KNN 语义检索  │           │                    │
+   │ Top-K 知识片段│           │                    │
+   └──────┬───────┘           │                    │
+          │                   │                    │
+          ▼                   ▼                    ▼
+   ┌─────────────────────────────────────────────────┐
+   │              Prompt 组装                          │
+   │  【参考知识】+【个人数据】+【用户问题】+【输出约束】  │
+   └──────────────────────┬──────────────────────────┘
+                          │
+                          ▼
+   ┌─────────────────────────────────────────────────┐
+   │  MedicalAssistant.chat(augmentedPrompt)           │
+   │  → qwen3.6-flash streaming-chat-model            │
+   │  → Flux&lt;String&gt; 逐 token SSE 推送               │
+   └──────────────────────┬──────────────────────────┘
+                          │
+                          ▼
+   ┌─────────────────────────────────────────────────┐
+   │  前端 EventSource 接收 SSE                       │
+   │  data: 布洛芬\n                                  │
+   │  data: 和阿司匹林\n                              │
+   │  data: 不建议同时服用...\n                        │
+   │  data: [DONE]                                    │
+   └─────────────────────────────────────────────────┘
+</div>
+</div>
+
+<!-- ═══════════════ 四、异常处理精讲 ═══════════════ -->
+
+<div class="card" id="s13">
+<h2>⚠️ 4.1 异常分层模型（核心）</h2>
+
+<div class="important">
+  RAG 管道涉及 5 个独立的服务边界，每一层都需要独立的异常处理和降级策略。
+  最常见的错误是"静默失败"——捕获异常后返回空列表，调用方无法区分"没数据"和"服务挂了"。
+</div>
+
+<div class="flow">
+askWithRag(elderId, question)            ← 最外层 try-catch（降级入口）
+  │
+  ├─ ① embeddingModel.embed(question)   ← 网络/认证异常
+  │     └─ DashScope API 不可达 / API Key 无效
+  │
+  ├─ ② embeddingStore.search(request)   ← 连接/索引/数据异常
+  │     └─ Redis 断开 / 索引不存在 / 格式错误
+  │
+  ├─ ③ contextBuilder.buildAndFormat()  ← Feign 调用异常
+  │     └─ medicine/remind 服务不可达 / 超时
+  │
+  └─ ④ assistant.chat(augmentedPrompt)  ← AI 模型异常
+        └─ 千问 API 超时 / 限流 / Token超限
+</div>
+
+<h3>异常分类策略</h3>
+<table>
+<tr><th>异常类型</th><th>是否可恢复</th><th>处理策略</th><th>用户感知</th></tr>
+<tr>
+  <td><span class="tag tag-red">不可恢复</span> 认证失败（API Key无效）</td>
+  <td>❌</td>
+  <td>快速失败 + 告警</td>
+  <td>"服务暂时不可用"</td>
+</tr>
+<tr>
+  <td><span class="tag tag-red">可重试</span> 网络超时</td>
+  <td>✅</td>
+  <td>重试 2~3 次后降级</td>
+  <td>无感知</td>
+</tr>
+<tr>
+  <td><span class="tag tag-red">可降级</span> 检索失败</td>
+  <td>✅</td>
+  <td>跳过RAG，纯LLM回答</td>
+  <td>回答缺少知识库支撑</td>
+</tr>
+<tr>
+  <td><span class="tag tag-red">可降级</span> Feign 调用失败</td>
+  <td>✅</td>
+  <td>使用空数据占位</td>
+  <td>回答缺少个人化数据</td>
+</tr>
+<tr>
+  <td><span class="tag tag-red">可降级</span> AI 模型不可用</td>
+  <td>❌</td>
+  <td>返回友好友好错误</td>
+  <td>"请稍后再试"</td>
+</tr>
+</table>
+</div>
+
+<div class="card" id="s14">
+<h2>🧮 4.2 嵌入模型异常（EmbeddingModel）</h2>
+
+<h3>异常场景</h3>
+<pre>// 场景1：网络超时（最常见）
+// 场景2：API Key 无效或过期
+// 场景3：模型名称不存在
+// 场景4：返回的向量维度与预期不一致
+
+Embedding queryEmbedding;
+try {
+    queryEmbedding = embeddingModel.embed(question).content();
+} catch (RuntimeException e) {
+    log.error("嵌入模型调用失败: {}", e.getMessage(), e);
+    // ← 嵌入是 RAG 的第一步，失败意味着整个 RAG 不可用
+    // 应该直接降级到纯 LLM 回答
+    throw new RagUnavailableException("嵌入服务不可用", e);
+}</pre>
+
+<h3>正确处理模式</h3>
+<pre>/**
+ * 嵌入异常 → 整个 RAG 不可用 → 降级为纯 LLM
+ * 注意：embedAll() 批量嵌入的超时风险更高
+ */
+private List&lt;EmbeddingMatch&lt;TextSegment&gt;&gt; retrieveRelevant(String question) {
+    try {
+        Embedding queryEmbedding = embeddingModel.embed(question).content();
+        // 校验向量维度
+        if (queryEmbedding.vector().length != this.dimension) {
+            log.error("向量维度不匹配: 期望{}, 实际{}",
+                this.dimension, queryEmbedding.vector().length);
+            throw new IllegalStateException("嵌入模型维度配置错误");
+        }
+        return embeddingStore.search(
+            EmbeddingSearchRequest.builder()
+                .queryEmbedding(queryEmbedding)
+                .maxResults(maxResults)
+                .minScore(minScore)
+                .build()
+        ).matches();
+    } catch (Exception e) {
+        // ← 统一向上抛，由外层 askWithRag() 统一降级
+        log.error("向量检索失败，将降级为纯大模型回答", e);
+        throw new RuntimeException("RAG检索不可用", e);
+    }
+}</pre>
+
+<div class="important">
+  <b>关键原则：retrieveRelevant() 应该统一抛异常，而非内部吞掉。</b>
+  如果内部 catch 后返回空列表，外层无法区分"没有匹配结果"和"服务挂了"。
+  两种场景的降级行为可能不同——前者正常返回（只是没有知识增强），后者需要告警。
+</div>
+</div>
+
+<div class="card" id="s15">
+<h2>🔍 4.3 检索异常（EmbeddingStore.search）</h2>
+
+<h3>异常分类与处理</h3>
+<pre>@Override
+public EmbeddingSearchResult&lt;TextSegment&gt; search(EmbeddingSearchRequest request) {
+    try {
+        // ... 执行检索 ...
+        return new EmbeddingSearchResult&lt;&gt;(matches);
+
+    } catch (JedisConnectionException e) {
+        // ① 连接失败 → 可重试，重试失败后向上抛
+        log.error("Redis 连接失败: {}", e.getMessage());
+        throw new RuntimeException("向量存储不可用，请检查 Redis Stack 状态", e);
+        //   ↑ 不要返回空列表！让调用方走降级
+
+    } catch (JedisDataException e) {
+        // ② 索引不存在 → 尝试自动重建
+        if (e.getMessage().contains("no such index")) {
+            log.warn("索引 {} 不存在，尝试重建", indexName);
+            createIndex();
+            return new EmbeddingSearchResult&lt;&gt;(List.of());
+        }
+        throw e;
+
+    } catch (NumberFormatException e) {
+        // ③ Score 解析异常 → 数据损坏，跳过该条
+        log.error("Score 解析失败，可能向量数据损坏: {}", e.getMessage());
+        // 返回已解析的成功部分（降级返回）
+    }
+
+    return new EmbeddingSearchResult&lt;&gt;(matches);
+}</pre>
+
+<h3>需要区分处理的异常</h3>
+<table>
+<tr><th>异常类</th><th>含义</th><th>处理</th></tr>
+<tr><td><code>JedisConnectionException</code></td><td>Redis 不可达</td><td><span class="tag tag-red">向上抛 → 降级</span></td></tr>
+<tr><td><code>JedisDataException</code> (no such index)</td><td>索引被误删</td><td>自动重建</td></tr>
+<tr><td><code>JedisDataException</code> (其他)</td><td>查询语法错误</td><td><span class="tag tag-red">向上抛 + 告警</span></td></tr>
+<tr><td><code>NumberFormatException</code></td><td>存储数据损坏</td><td>跳过该条</td></tr>
+</table>
+</div>
+
+<div class="card" id="s16">
+<h2>💾 4.4 存储异常（+ 批量写入容错）</h2>
+
+<h3>单条写入异常</h3>
+<pre>// ❌ 错误的静默失败
+private void addInternal(String id, Embedding embedding, TextSegment segment) {
+    try {
+        jedis.hset(key, fields);
+    } catch (Exception e) {
+        log.warn("写入失败: {}", e.getMessage());
+        // ← 调用方不知道写入失败了！
+    }
+}
+
+// ✅ 正确：根据异常类型决定是否重试
+private void addInternal(String id, Embedding embedding, TextSegment segment) {
+    int retries = 0;
+    int maxRetries = 3;
+    while (retries &lt; maxRetries) {
+        try {
+            jedis.hset(key, fields);
+            return;  // 成功
+        } catch (JedisConnectionException e) {
+            retries++;
+            if (retries == maxRetries) {
+                throw new RuntimeException(
+                    String.format("写入失败（已重试%d次）: %s", maxRetries, id), e);
+            }
+            log.warn("写入重试 {}/{}: {}", retries, maxRetries, id);
+            try { Thread.sleep(1000L * retries); } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("写入被中断", ie);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("写入失败: " + id, e);
+        }
+    }
+}</pre>
+
+<h3>批量写入——addAll 的检查</h3>
+<pre>// ✅ 写入前校验
+@Override
+public List&lt;String&gt; addAll(List&lt;Embedding&gt; embeddings, List&lt;TextSegment&gt; textSegments) {
+    // 数量一致性检查
+    if (embeddings.size() != textSegments.size()) {
+        throw new IllegalArgumentException(
+            String.format("嵌入向量数量(%d)与文本片段数量(%d)不一致",
+                embeddings.size(), textSegments.size()));
+    }
+    // 向量维度检查
+    for (int i = 0; i &lt; embeddings.size(); i++) {
+        if (embeddings.get(i).vector().length != this.dimension) {
+            throw new IllegalArgumentException(
+                String.format("第%d个向量维度不匹配: 期望%d, 实际%d",
+                    i, this.dimension, embeddings.get(i).vector().length));
+        }
+    }
+    // ... 执行写入 ...
+}</pre>
+
+<div class="important">
+  <b>写入失败的断点续传问题：</b>如果 100 个片段中第 50 个写入失败，前面的 49 个已经写入了。
+  简单的重试会导致前 49 个重复写入。需要在设计层面考虑：① 写入前先按 doc_id 清理旧数据
+  ② 或者记录每个 chunk 的写入状态（Redis Set）
+</div>
+</div>
+
+<div class="card" id="s17">
+<h2>📡 4.5 Feign 调用异常</h2>
+
+<h3>Feign 调用的异常模式</h3>
+<pre>// ❌ 当前代码：每个 Feign 调用独立 try-catch → 只能串行
+try {
+    Result&lt;...&gt; result = medicineFeignClient.getMedicinesByElderId(elderId);
+    contextMap.put("medicines", result != null ? result.getData() : null);
+} catch (Exception e) {
+    log.error("获取药品列表失败", e);
+    contextMap.put("medicines", List.of());  // ← 静默降级为空列表
+}
+
+// ✅ 改进：并行 + 统一异常收集
+CompletableFuture&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; f1 = CompletableFuture
+    .supplyAsync(() -> fetchMedicines(elderId))
+    .exceptionally(ex -> {
+        log.error("获取药品列表失败", ex);
+        return List.of();  // 降级为空
+    });
+
+CompletableFuture&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; f2 = CompletableFuture
+    .supplyAsync(() -> fetchTodayRecords(elderId))
+    .exceptionally(ex -> {
+        log.error("获取用药记录失败", ex);
+        return List.of();
+    });
+
+// 等待全部完成（并行耗时 = max(T1, T2, T3)，而非 T1+T2+T3）
+CompletableFuture.allOf(f1, f2, f3).join();</pre>
+
+<div class="tip">
+  <b>Feign 异常类型：</b><br>
+  · <code>FeignException.ServiceUnavailable</code> — 服务不可达（503），应该重试<br>
+  · <code>FeignException.GatewayTimeout</code> — 网关超时（504），应该重试<br>
+  · <code>FeignException.BadRequest</code> — 参数错误（400），不应该重试<br>
+  · <code>RetryableException</code> — 网络错误，自动重试<br>
+</div>
+</div>
+
+<div class="card" id="s18">
+<h2>🤖 4.6 AI 调用异常 + 完整降级链路</h2>
+
+<h3>最终降级策略</h3>
+<pre>/**
+ * RAG 增强问答——完整降级链路
+ *
+ * 降级层级：
+ *   L1: RAG 全部可用 → 知识库 + 个人数据 + AI
+ *   L2: 检索失败     → 仅个人数据 + AI（本方法）
+ *   L3: 个人数据失败  → 仅 AI（纯聊天）
+ *   L4: AI 不可用     → 返回固定话术
+ */
+public Flux&lt;String&gt; askWithRag(Integer elderId, String question) {
+    try {
+        // L1: 正常 RAG 流程
+        List&lt;EmbeddingMatch&lt;TextSegment&gt;&gt; docs = retrieveRelevant(question);
+        String personalCtx = contextBuilder.buildAndFormat(elderId);
+        String prompt = buildAugmentedPrompt(docs, personalCtx, question);
+        return assistant.chat(prompt)
+            .onErrorResume(e -> {
+                // L4 兜底：AI 模型也不可用
+                log.error("AI 调用失败", e);
+                return Flux.just("抱歉，AI 服务暂时不可用，请稍后再试。");
+            });
+
+    } catch (Exception e) {
+        // L2: RAG 检索失败 → 降级为纯个人数据 + AI
+        log.warn("RAG 检索失败，降级为个人数据问答", e);
+        try {
+            String personalCtx = elderId != null
+                ? contextBuilder.buildAndFormat(elderId)
+                : "（无个人数据）";
+            return assistant.chat(personalCtx + "\n\n用户问题: " + question)
+                .onErrorResume(ex -> {
+                    // L3: 个人数据也获取失败 → 纯 AI 聊天
+                    log.error("上下文构建失败", ex);
+                    return assistant.chat(question);
+                });
+        } catch (Exception ex) {
+            // L4: 全部失败
+            log.error("所有路径均失败", ex);
+            return Flux.just("抱歉，服务暂时不可用，请稍后再试。");
+        }
+    }
+}</pre>
+
+<div class="important">
+  <b>降级设计原则：</b><br>
+  ① <b>逐层降级</b>：RAG → 个人数据 → 纯AI → 固定话术，每一层都是上一层的兜底<br>
+  ② <b>用户无感第一层</b>：检索失败时用户感知不到（只是回答少了知识增强）<br>
+  ③ <b>清晰告知最后一层</b>：AI 完全不可用时，必须明确告诉用户"请稍后再试"<br>
+  ④ <b>日志完整</b>：每一层降级都要打 log，便于排查根因
+</div>
+</div>
+
+<!-- ═══════════════ 五、实战案例 ═══════════════ -->
+
+<div class="card" id="s19">
+<h2>🏗️ 5.1 实战：自定义 Redis EmbeddingStore（完整实现）</h2>
+
+<div class="important">这是 elderly-ai 模块中最核心的类——基于 Redis Stack (RediSearch) 实现 LangChain4j 的 EmbeddingStore 接口。</div>
+
+<h3>类结构</h3>
+<pre>@Slf4j
+public class RedisEmbeddingStore implements EmbeddingStore&lt;TextSegment&gt; {
+
+    private final JedisPooled jedis;       // Redis Stack 客户端
+    private final String indexName;        // RediSearch 索引名
+    private final String keyPrefix;        // Key 前缀 "rag:doc:"
+    private final int dimension;           // 向量维度 1024
+    private volatile boolean indexCreated; // 索引是否已创建
+
+    // 构造器 → 自动确保索引存在
+    public RedisEmbeddingStore(JedisPooled jedis, String indexName,
+                                String keyPrefix, int dimension) {
+        this.jedis = jedis;
+        this.indexName = indexName;
+        this.keyPrefix = keyPrefix;
+        this.dimension = dimension;
+        ensureIndexExists();  // ← 启动时自动创建索引
+    }
+    // ... 接口方法实现 ...
+}</pre>
+
+<h3>存储结构</h3>
+<pre>// Redis 中的存储格式（每个 chunk 一个 Hash Key）
+Key:   rag:doc:a1b2c3d4
+Type:  Hash
+Fields:
+  embedding    → FLOAT32 小端字节数组（1024 × 4 = 4096 bytes）
+  content      → "布洛芬缓释胶囊，用于缓解轻至中度疼痛..."
+  title        → "布洛芬说明书"
+  category     → "MEDICINE"
+  doc_id       → "a1b2c3d4"
+  chunk_index  → "3"
+  created_at   → "1717833600000"</pre>
+
+<h3>向量序列化</h3>
+<pre>// float[] → FLOAT32 小端字节数组（RediSearch 标准格式）
+private byte[] embeddingToBytes(Embedding embedding) {
+    float[] vector = embedding.vector();
+    ByteBuffer buffer = ByteBuffer.allocate(vector.length * 4);
+    buffer.order(ByteOrder.LITTLE_ENDIAN);  // ← 小端序
+    for (float v : vector) {
+        buffer.putFloat(v);
+    }
+    return buffer.array();
+}
+
+// 字节数组 → RediSearch BLOB 字符串
+private String bytesToBlob(byte[] bytes) {
+    return new String(bytes, StandardCharsets.ISO_8859_1);
+    //                    ↑ ISO_8859_1: 每个字节映射为一个字符，无数据丢失
+}</pre>
+</div>
+
+<div class="card" id="s20">
+<h2>🛡️ 5.2 降级策略设计（完整实战）</h2>
+
+<h3>降级链路图</h3>
+<div class="flow">
+用户请求 → askWithRag(elderId, question)
+   │
+   ├─ [成功] retrieveRelevant(question) ─→ Top-K 知识片段
+   │    │
+   │    └─ [失败] ─→ 降级①: 跳过RAG，仅用个人数据 + AI
+   │                    │
+   │                    └─ [失败] ─→ 降级②: 纯AI聊天（无上下文）
+   │                                    │
+   │                                    └─ [失败] ─→ 降级③: 固定话术
+   │
+   └─ [成功] contextBuilder.buildAndFormat(elderId) ─→ 个人上下文
+        │
+        └─ [失败] ─→ 降级④: "（无个人数据）" 占位符
+</div>
+
+<h3>关键——降级行为必须一致</h3>
+<pre>// ❌ 不一致的设计（当前代码的问题）
+private List&lt;EmbeddingMatch&lt;TextSegment&gt;&gt; retrieveRelevant(String question) {
+    Embedding queryEmbedding = embeddingModel.embed(question).content();
+    // ↑ 如果这里抛异常 → 外层 catch 捕获 → 走降级 ✅
+
+    return embeddingStore.search(request).matches();
+    // ↑ 如果这里抛异常 → 被 search() 内部吞掉 → 返回空列表 → 不走降级 ❌
+}
+
+// ✅ 一致的设计
+// retrieveRelevant() 统一向上抛异常，由外层统一降级
+private List&lt;EmbeddingMatch&lt;TextSegment&gt;&gt; retrieveRelevant(String question) {
+    // 所有异常都不吞，直接向上传播
+    Embedding queryEmbedding = embeddingModel.embed(question).content();
+    return embeddingStore.search(request).matches();
+    // embeddingStore.search() 也不吞异常
+}</pre>
+
+<div class="important">
+  <b>降级设计检查清单：</b><br>
+  ☑ 每一层异常都有明确的降级路径<br>
+  ☑ 降级行为在全链路中保持一致（不会一半走降级一半不走）<br>
+  ☑ 最底层降级（完全不可用）必须给用户友好提示<br>
+  ☑ 每一层降级都有 log.warn/log.error<br>
+  ☑ 降级后的回答质量仍然可接受（不会给出错误信息）
+</div>
+</div>
+
+<div class="card" id="s21">
+<h2>👂 5.3 EmbeddingStoreListener（监听器模式）</h2>
+
+<div class="tip">
+  LangChain4j 提供了 <b>EmbeddingStoreListener</b> 接口，可以在写入/检索时自动触发回调，用于监控、日志、审计等——无需修改业务代码。
+</div>
+
+<pre>// 注册监听器
+EmbeddingStore&lt;TextSegment&gt; store = new RedisEmbeddingStore(...);
+
+// addListener 返回包装后的 EmbeddingStore（装饰器模式）
+EmbeddingStore&lt;TextSegment&gt; monitoredStore = store.addListener(
+    new EmbeddingStoreListener&lt;TextSegment&gt;() {
+
+        @Override
+        public void onAdd(String id, Embedding embedding, TextSegment segment) {
+            log.info("向量入库: id={}, title={}", id,
+                segment != null ? segment.metadata().getString("title") : "N/A");
+        }
+
+        @Override
+        public void onSearch(EmbeddingSearchRequest request,
+                             EmbeddingSearchResult&lt;TextSegment&gt; result) {
+            log.info("检索完成: maxResults={}, 实际返回={}",
+                request.maxResults(), result.matches().size());
+        }
+
+        @Override
+        public void onError(EmbeddingStoreErrorContext&lt;TextSegment&gt; context) {
+            Throwable error = context.error();
+            log.error("向量存储异常: {}", error.getMessage());
+            // 可以在这里接入告警系统
+            alertService.send("RAG向量存储异常: " + error.getMessage());
+        }
+    }
+);</pre>
+
+<h3>监听器 vs try-catch</h3>
+<table>
+<tr><th>维度</th><th>EmbeddingStoreListener</th><th>try-catch</th></tr>
+<tr><td>对业务代码的侵入</td><td>✅ 零侵入</td><td>❌ 每个调用点都要写</td></tr>
+<tr><td>统一监控</td><td>✅ 天然统一</td><td>❌ 容易遗漏</td></tr>
+<tr><td>异常恢复</td><td>❌ 只能观测不能恢复</td><td>✅ 可以重试/降级</td></tr>
+<tr><td>适用场景</td><td>监控、日志、审计、告警</td><td>流程控制、降级、重试</td></tr>
+</table>
+</div>
+
+<!-- ═══════════════ 六、常见问题 ═══════════════ -->
+
+<div class="card" id="s22">
+<h2>🚨 6.1 10 大反模式（避坑指南）</h2>
+
+<table>
+<tr><th>#</th><th>反模式</th><th>问题</th><th>正确做法</th></tr>
+
+<tr>
+  <td>1</td>
+  <td><b>静默失败</b><br><code>catch(Exception e) { return List.of(); }</code></td>
+  <td>调用方无法区分"没数据"和"服务挂了"，降级逻辑被绕过</td>
+  <td><span class="tag tag-red">异常向上传播，由顶层统一降级</span></td>
+</tr>
+
+<tr>
+  <td>2</td>
+  <td><b>双层catch行为不一致</b><br>内层吞异常，外层走降级</td>
+  <td>同一方法内，embed失败走降级，search失败不走降级</td>
+  <td><span class="tag tag-red">统一策略：要么都吞，要么都抛</span></td>
+</tr>
+
+<tr>
+  <td>3</td>
+  <td><b>embedAll()不分批</b><br>100个片段 = 1个HTTP请求</td>
+  <td>超时风险、部分失败不可恢复、无断点续传</td>
+  <td><span class="tag tag-red">分批嵌入（每批10~20个）+ 记录进度</span></td>
+</tr>
+
+<tr>
+  <td>4</td>
+  <td><b>Feign返回裸Map</b><br><code>Result&lt;List&lt;Map&gt;&gt;</code></td>
+  <td>泛型擦除、零编译期安全、运行时ClassCastException</td>
+  <td><span class="tag tag-red">定义类型化DTO</span></td>
+</tr>
+
+<tr>
+  <td>5</td>
+  <td><b>Event Loop线程阻塞</b><br>同步Feign调用不用defer</td>
+  <td>阻塞Netty事件循环 → 吞吐量暴跌</td>
+  <td><span class="tag tag-red">Flux.defer()包裹阻塞操作</span></td>
+</tr>
+
+<tr>
+  <td>6</td>
+  <td><b>空实现充当已实现</b><br><code>return List.of();</code></td>
+  <td>调用方以为查询成功但无数据（契约欺骗）</td>
+  <td><span class="tag tag-red">抛UnsupportedOperationException</span></td>
+</tr>
+
+<tr>
+  <td>7</td>
+  <td><b>SSE格式不一致</b><br>有的有[DONE]有的没有</td>
+  <td>前端处理流结束的逻辑分裂</td>
+  <td><span class="tag tag-red">统一SSE事件格式</span></td>
+</tr>
+
+<tr>
+  <td>8</td>
+  <td><b>安全白名单过宽</b><br><code>permitAll("/ai/**")</code></td>
+  <td>知识库管理接口完全暴露，未认证即可增删改</td>
+  <td><span class="tag tag-red">细化白名单，区分读写权限</span></td>
+</tr>
+
+<tr>
+  <td>9</td>
+  <td><b>测试兜底泄露到生产</b><br><code>if(id==null) id=1;</code></td>
+  <td>未登录用户使用测试账号数据 → 信息泄露</td>
+  <td><span class="tag tag-red">加TODO标记 + 上线前移除</span></td>
+</tr>
+
+<tr>
+  <td>10</td>
+  <td><b>格式化输出违反SystemMessage约束</b><br>SystemMessage禁止Markdown但输出使用Markdown</td>
+  <td>Prompt约束与实际输出格式冲突</td>
+  <td><span class="tag tag-red">在约束框架内设计格式（纯文本友好）</span></td>
+</tr>
+</table>
+
+<div class="important">
+  <b>核心原则：</b>以上 10 条反模式中，<b>#1（静默失败）</b>和<b>#2（双层catch不一致）</b>是最容易犯也最致命的——它们直接破坏降级策略的正确性。修复这两条就能避免 80% 的异常处理相关问题。
+</div>
+</div>
+
+<!-- 页脚 -->
+<div style="text-align:center; padding:40px 20px; color:#999; font-size:0.85em;">
+  <p>📖 LangChain4j RAG 集成教学 · 异常处理精讲</p>
+  <p>老年护理云平台 elderly-ai 模块 · 2026-06-08</p>
+  <p>参考：<a href="https://docs.langchain4j.dev" style="color:var(--blue)">LangChain4j 官方文档</a></p>
+</div>
+
+</main>
+</body>
+</html>

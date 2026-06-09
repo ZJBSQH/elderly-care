@@ -15,8 +15,7 @@ USE `db_elderly_medicine`;
 -- ----------------------------
 -- Table: medicine (用药计划表)
 -- ----------------------------
-DROP TABLE IF EXISTS `medicine`;
-CREATE TABLE `medicine` (
+CREATE TABLE IF NOT EXISTS `medicine` (
   `id`            INT          NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
   `elder_id`      INT          NOT NULL COMMENT '关联老人 ID (软引用 db_elderly_user.elder.id)',
   `medicine_name` VARCHAR(100) NOT NULL COMMENT '药品名称',
@@ -27,18 +26,16 @@ CREATE TABLE `medicine` (
   `end_date`      DATE         NOT NULL COMMENT '计划结束日期',
   `status`        TINYINT      NOT NULL DEFAULT 1 COMMENT '状态: 1-进行中, 0-停用',
   `create_time`   DATETIME     NULL     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `update_time`   DATETIME     NULL     DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  `update_time`   DATETIME     NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
   `is_public`     TINYINT      NOT NULL DEFAULT 0 COMMENT '是否公共药品: 0-个人, 1-公共',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_elder_id` (`elder_id`) USING BTREE
-  -- 原外键 fk_medicine_elder 已移除 (跨库)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用药计划表';
 
 -- ----------------------------
 -- Table: record (服药记录表)
 -- ----------------------------
-DROP TABLE IF EXISTS `record`;
-CREATE TABLE `record` (
+CREATE TABLE IF NOT EXISTS `record` (
   `id`          INT          NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
   `task_id`     INT          NOT NULL COMMENT '关联用药计划 ID',
   `elder_id`    INT          NOT NULL COMMENT '冗余字段: 老人 ID (软引用 db_elderly_user.elder.id)',

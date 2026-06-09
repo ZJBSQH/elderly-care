@@ -18,8 +18,8 @@ public enum BaseErrorCode implements ErrorCode {
     NOT_FOUND(404, "资源不存在"),
 
     SYSTEM_ERROR(500, "系统错误"),
-    DATABASE_ERROR(9001, "数据库操作失败"),
-    REDIS_ERROR(9002, "缓存操作失败");
+    DATABASE_ERROR(501, "数据库操作失败"),
+    REDIS_ERROR(502, "缓存操作失败");
 
     private final Integer code;
     private final String message;

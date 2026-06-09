@@ -28,6 +28,39 @@
         SELECT *
         FROM remind_task
         WHERE status = 1
+          AND remind_date &lt;= CURDATE()
+          AND (
+              remind_date = CURDATE()
+              OR repeat_cycle = 1
+              OR (repeat_cycle = 2 AND DAYOFWEEK(remind_date) = DAYOFWEEK(CURDATE()))
+              OR (repeat_cycle = 3 AND DAYOFMONTH(remind_date) = DAYOFMONTH(CURDATE()))
+          )
+          AND (end_date IS NULL OR end_date &gt;= CURDATE())
+    </select>
+
+    <!-- 查询指定用户当天需要执行的提醒任务 -->
+    <select id="selectTodayTasksByUserId" resultMap="BaseResultMap">
+        SELECT *
+        FROM remind_task
+        WHERE status = 1
+          AND user_id = #{userId}
+          AND remind_date &lt;= CURDATE()
+          AND (
+              remind_date = CURDATE()
+              OR repeat_cycle = 1
+              OR (repeat_cycle = 2 AND DAYOFWEEK(remind_date) = DAYOFWEEK(CURDATE()))
+              OR (repeat_cycle = 3 AND DAYOFMONTH(remind_date) = DAYOFMONTH(CURDATE()))
+          )
+          AND (end_date IS NULL OR end_date &gt;= CURDATE())
+    </select>
+
+    <!-- 查询指定老人当天需要执行的提醒任务 -->
+    <select id="selectTodayTasksByElderId" resultMap="BaseResultMap">
+        SELECT *
+        FROM remind_task
+        WHERE status = 1
+          AND elder_id = #{elderId}
+          AND remind_date &lt;= CURDATE()
           AND (
               remind_date = CURDATE()
               OR repeat_cycle = 1

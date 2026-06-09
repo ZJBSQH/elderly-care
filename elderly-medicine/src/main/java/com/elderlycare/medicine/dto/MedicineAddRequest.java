@@ -38,7 +38,7 @@ public class MedicineAddRequest {
     private String dosage;
 
     /**
-     * 提醒时间点
+     * 提醒时间点（为空默认 08:00）
      */
     private LocalTime remindTime;
 

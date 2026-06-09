@@ -20,8 +20,8 @@
       >✅ 已服</view>
       <view
         class="tab-item"
-        :class="{ active: filterStatus === 0 }"
-        @click="filterStatus = 0; reload()"
+        :class="{ active: filterStatus === 2 }"
+        @click="filterStatus = 2; reload()"
       >⚠️ 漏服</view>
     </view>
 
@@ -45,13 +45,13 @@
     <view class="record-list" v-if="records.length > 0">
       <view
         class="record-item"
-        :class="{ taken: r.status === 1, missed: r.status === 0 }"
+        :class="{ taken: r.status === 1, missed: r.status === 2 }"
         v-for="r in records"
         :key="r.id"
       >
         <view class="record-left">
           <view class="record-status-icon">
-            {{ r.status === 1 ? '✅' : '⚠️' }}
+            {{ r.status === 1 ? '✅' : r.status === 2 ? '⚠️' : '⏳' }}
           </view>
         </view>
         <view class="record-body">
@@ -63,7 +63,7 @@
         <view class="record-right">
           <text class="record-date">{{ formatDate(r.remindDate) }}</text>
           <text class="record-status-text" :class="r.status === 1 ? 'status-taken' : 'status-missed'">
-            {{ r.statusText || (r.status === 1 ? '已服' : '漏服') }}
+            {{ r.statusText }}
           </text>
         </view>
       </view>

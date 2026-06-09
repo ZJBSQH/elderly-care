@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>elderly-ai 模块面试错题集</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --card-bg: #16213e;
+            --text: #e0e0e0;
+            --accent: #0f3460;
+            --gold: #ffd700;
+            --red: #ff6b6b;
+            --green: #51cf66;
+            --blue: #4dabf7;
+            --orange: #ffa94d;
+            --code-bg: #0d1117;
+            --border: #2a2a4a;
+            --tag-bg: #1e3a5f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.8;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* 头部 */
+        .header {
+            text-align: center;
+            padding: 50px 20px 40px;
+            border-bottom: 3px solid var(--gold);
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            color: var(--gold);
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            font-size: 1.1em;
+            color: #888;
+        }
+
+        .header .meta {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .header .meta span {
+            background: var(--accent);
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        /* 评分总览 */
+        .score-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .score-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .score-card .round {
+            font-size: 0.85em;
+            color: #888;
+            margin-bottom: 6px;
+        }
+
+        .score-card .score {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--red);
+        }
+
+        .score-card .total {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .score-card.final {
+            border-color: var(--gold);
+            background: linear-gradient(135deg, #1a1a2e, #2a1a1a);
+        }
+
+        .score-card.final .score {
+            color: var(--gold);
+            font-size: 3em;
+        }
+
+        .score-card:last-child {
+            grid-column: 1 / -1;
+        }
+
+        /* 题目卡片 */
+        .question-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .question-card.low-score {
+            border-left: 4px solid var(--red);
+        }
+
+        .question-card.mid-score {
+            border-left: 4px solid var(--orange);
+        }
+
+        .question-card.high-score {
+            border-left: 4px solid var(--green);
+        }
+
+        .q-header {
+            padding: 20px 25px;
+            background: rgba(255, 255, 255, 0.03);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .q-header h2 {
+            font-size: 1.15em;
+            color: #fff;
+        }
+
+        .q-header .q-meta {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .badge-score {
+            background: var(--red);
+            color: #fff;
+        }
+
+        .badge-score.mid {
+            background: var(--orange);
+            color: #000;
+        }
+
+        .badge-score.high {
+            background: var(--green);
+            color: #000;
+        }
+
+        .badge-diff {
+            background: var(--tag-bg);
+            color: var(--blue);
+        }
+
+        .q-body {
+            padding: 25px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section h4 {
+            font-size: 0.95em;
+            color: var(--orange);
+            margin-bottom: 10px;
+            padding-left: 10px;
+            border-left: 3px solid var(--orange);
+        }
+
+        .section h4.correct {
+            color: var(--green);
+            border-color: var(--green);
+        }
+
+        .section h4.wrong {
+            color: var(--red);
+            border-color: var(--red);
+        }
+
+        .user-answer {
+            background: rgba(255, 107, 107, 0.08);
+            border: 1px solid rgba(255, 107, 107, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 8px 0;
+            font-style: italic;
+            color: #ff9999;
+        }
+
+        .user-answer::before {
+            content: "✗ 你的回答: ";
+            font-style: normal;
+            font-weight: bold;
+            color: var(--red);
+            font-size: 0.85em;
+        }
+
+        .correct-answer {
+            background: rgba(81, 207, 102, 0.06);
+            border: 1px solid rgba(81, 207, 102, 0.2);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 8px 0;
+            color: #b8e6b8;
+        }
+
+        .correct-answer::before {
+            content: "✓ 正确答案: ";
+            font-weight: bold;
+            color: var(--green);
+            font-size: 0.85em;
+        }
+
+        .tip-box {
+            background: rgba(77, 171, 247, 0.06);
+            border: 1px solid rgba(77, 171, 247, 0.2);
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 8px 0;
+        }
+
+        .tip-box::before {
+            content: "💡 要点: ";
+            font-weight: bold;
+            color: var(--blue);
+        }
+
+        /* 代码块 */
+        pre {
+            background: var(--code-bg);
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px 20px;
+            overflow-x: auto;
+            font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.88em;
+            line-height: 1.7;
+            margin: 10px 0;
+        }
+
+        code {
+            font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+
+        pre .keyword {
+            color: #ff7b72;
+        }
+
+        pre .string {
+            color: #a5d6ff;
+        }
+
+        pre .comment {
+            color: #8b949e;
+        }
+
+        pre .annotation {
+            color: #ffa657;
+        }
+
+        pre .type {
+            color: #ffa657;
+        }
+
+        pre .method {
+            color: #d2a8ff;
+        }
+
+        pre .number {
+            color: #79c0ff;
+        }
+
+        /* 流程图 */
+        .flow {
+            background: var(--code-bg);
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px 20px;
+            font-family: monospace;
+            white-space: pre;
+            overflow-x: auto;
+            font-size: 0.85em;
+            line-height: 1.6;
+        }
+
+        /* 对比表格 */
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
+        .compare-table th,
+        .compare-table td {
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            text-align: left;
+        }
+
+        .compare-table th {
+            background: var(--accent);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .compare-table tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* 标签 */
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.78em;
+            margin-right: 4px;
+        }
+
+        .tag-java {
+            background: #f89820;
+            color: #000;
+        }
+
+        .tag-spring {
+            background: #6db33f;
+            color: #000;
+        }
+
+        .tag-redis {
+            background: #dc382d;
+            color: #fff;
+        }
+
+        .tag-ai {
+            background: #7b2ff7;
+            color: #fff;
+        }
+
+        .tag-webflux {
+            background: #00b4d8;
+            color: #000;
+        }
+
+        .tag-feign {
+            background: #34495e;
+            color: #fff;
+        }
+
+        /* 打印样式 */
+        @media print {
+            body {
+                background: #fff;
+                color: #000;
+            }
+
+            .question-card {
+                break-inside: avoid;
+                border: 1px solid #ccc;
+                background: #fff;
+            }
+
+            pre {
+                background: #f5f5f5;
+                border: 1px solid #ddd;
+                color: #333;
+            }
+        }
+
+        /* TOC */
+        .toc {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 40px;
+        }
+
+        .toc h3 {
+            color: var(--gold);
+            margin-bottom: 12px;
+        }
+
+        .toc ol {
+            padding-left: 20px;
+        }
+
+        .toc li {
+            margin: 6px 0;
+        }
+
+        .toc a {
+            color: var(--blue);
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- ===== 头部 ===== -->
+    <div class="header">
+        <h1>📋 elderly-ai 模块 · 面试错题集</h1>
+        <p class="subtitle">老年护理云平台 AI 助手服务 — 技术面试复盘</p>
+        <div class="meta">
+            <span>📅 2026-06-08</span>
+            <span>📦 Spring Boot 3.5.11 + WebFlux</span>
+            <span>🧠 LangChain4j + DashScope 千问</span>
+            <span>🔴 Redis Stack RediSearch</span>
+            <span>📡 OpenFeign</span>
+        </div>
+    </div>
+
+    <!-- ===== 评分总览 ===== -->
+    <div class="score-overview">
+        <div class="score-card">
+            <div class="round">第一轮 · 架构与设计</div>
+            <div class="score">10.5</div>
+            <div class="total">/ 20 分</div>
+        </div>
+        <div class="score-card">
+            <div class="round">第二轮 · 核心实现细节</div>
+            <div class="score">9</div>
+            <div class="total">/ 30 分</div>
+        </div>
+        <div class="score-card">
+            <div class="round">第三轮 · 技术栈与集成</div>
+            <div class="score">3</div>
+            <div class="total">/ 20 分</div>
+        </div>
+        <div class="score-card">
+            <div class="round">第四轮 · 代码质量</div>
+            <div class="score">—</div>
+            <div class="total">/ 20 分 (未完成)</div>
+        </div>
+        <div class="score-card final">
+            <div class="round">🏆 当前总分</div>
+            <div class="score">22.5</div>
+            <div class="total">/ 70 分 ≈ 32分 (百分制约32分) — 未完成部分不计入</div>
+        </div>
+        <div class="score-card final">
+            <div class="round">🎯 已完成题目加权百分制</div>
+            <div class="score">32</div>
+            <div class="total">/ 100 (百分制)</div>
+        </div>
+    </div>
+
+    <!-- ===== 目录 ===== -->
+    <div class="toc">
+        <h3>📑 错题目录（共15题）</h3>
+        <ol>
+            <li><a href="#q1">模块架构定位 — 遗漏 RAG/知识库/资讯同步三大能力</a></li>
+            <li><a href="#q2">MedicalAssistant 无状态设计 — 未理解实时性驱动与扩展性优势</a></li>
+            <li><a href="#q3">两个 Controller 的定位 — 遗漏 /health-knowledge 端点</a></li>
+            <li><a href="#q4">安全配置矛盾 — permitAll + userId 兜底的设计缺陷</a></li>
+            <li><a href="#q5">RedisEmbeddingStore KNN 检索 — 参数绑定/Sco​​re 转换/静默失败</a></li>
+            <li><a href="#q6">IngestionPipeline 文档摄取 — 一次性提交风险与医学文档弱点</a></li>
+            <li><a href="#q7">上下文格式化与优化 — Markdown 禁令、并行方案、类型安全</a></li>
+            <li><a href="#q8">RagService 双层异常 — 内层吞异常导致降级失效</a></li>
+            <li><a href="#q9">LangChain4j Flux 与 Reactor 桥接 — 返回类型自动路由</a></li>
+            <li><a href="#q10">Flux.defer() 的真实作用 — Event Loop 阻塞问题</a></li>
+            <li><a href="#q11">SSE 格式一致性 — [DONE] 事件缺失</a></li>
+            <li><a href="#q12">空实现的方法 — 契约欺骗 vs 显式抛异常</a></li>
+            <li><a href="#q13">注释质量 — CLAUDE.md 规范缺失</a></li>
+            <li><a href="#q14">Feign 返回裸 Map — 类型安全与重构方案</a></li>
+            <li><a href="#q15">temperature 配置 — 医疗场景下的合适取值</a></li>
+        </ol>
+    </div>
+
+    <!-- ═══════════════════════════════ 第1题 ═══════════════════════════════ -->
+    <div class="question-card mid-score" id="q1">
+        <div class="q-header">
+            <h2>第1题：elderly-ai 模块架构定位</h2>
+            <div class="q-meta">
+                <span class="badge badge-score mid">得分 2.5/5</span>
+                <span class="badge badge-diff">第一轮 · 架构与设计</span>
+                <span class="tag tag-java">Java</span>
+                <span class="tag tag-spring">Spring</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="wrong">你的回答</h4>
+                <div class="user-answer">
+                    elderly-ai模块是在微服务里面是对用药模块的扩充，用户通过ai模块对自己的用药情况更加了解并收到有更多的建议，它有一个redis充当下数据库，里面存储一些文档的字节数据，依赖remind、medicine、health模块的查询接口获取对应模块的数据，通过feign远程调用这些数据接口。
+                </div>
+            </div>
+
+            <div class="section">
+                <h4>错误分析</h4>
+                <ul>
+                    <li><strong>遗漏了 RAG 增强检索</strong>——这是 elderly-ai 最核心的差异化能力</li>
+                    <li><strong>遗漏了知识库管理</strong>（KnowledgeBaseController：文档 CRUD + 资讯同步）</li>
+                    <li><strong>依赖的服务说错了</strong>——你说了 health，但代码中 <strong>没有 HealthFeignClient</strong>，实际有的是 NewsFeignClient</li>
+                    <li><strong>Redis 定位不精准</strong>——不是"充当数据库"，而是 <strong>Redis Stack (RediSearch)</strong> 使用 HNSW 算法做向量存储与 KNN 语义检索</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    elderly-ai 是老年护理云平台中的<strong>无状态聚合 AI 服务（端口 8087）</strong>，没有独立数据库。<br><br>
+                    <strong>三大核心能力：</strong>
+                    <ol>
+                        <li><strong>用药 AI 问答</strong>（AssistantController）：通过 Feign 聚合 medicine/remind 数据构建上下文，调用千问大模型流式生成回答</li>
+                        <li><strong>RAG 增强检索问答</strong>（RagAssistantController）：用户问题 → Embedding 向量化 → Redis HNSW KNN 检索 → 增强 Prompt → 流式生成（含降级策略）</li>
+                        <li><strong>知识库管理 + 资讯同步</strong>（KnowledgeBaseController）：医学文档 CRUD，支持从 elderly-news 一键同步文章到向量库</li>
+                    </ol>
+                    <strong>依赖的下游服务：</strong>elderly-medicine、elderly-remind、elderly-news（通过 OpenFeign 调用，FeignConfig 自动转发 JWT Token）<br>
+                    <strong>存储：</strong>Redis Stack (RediSearch) 作为向量存储，使用 HNSW 索引 + COSINE 距离进行 KNN 语义检索。<br>
+                    <strong>AI 模型：</strong>阿里云 DashScope 千问 qwen3.6-flash（对话）+ text-embedding-v3（嵌入，1024 维）。
+                </div>
+            </div>
+
+            <div class="tip-box">
+                模块的完整定位要看三个 Controller 的职责分工，仅从 Feign 调用去理解会漏掉核心的 RAG 管道和知识库管理能力。
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ 第2题 ═══════════════════════════════ -->
+    <div class="question-card mid-score" id="q2">
+        <div class="q-header">
+            <h2>第2题：MedicalAssistant 无状态设计</h2>
+            <div class="q-meta">
+                <span class="badge badge-score mid">得分 2.5/5</span>
+                <span class="badge badge-diff">第一轮 · 架构与设计</span>
+                <span class="tag tag-ai">LangChain4j</span>
+                <span class="tag tag-java">@AiService</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="wrong">你的回答</h4>
+                <div class="user-answer">
+                    因为这个项目比较小，直接通过context调用整个用户用药数据做上下文，已经全部覆盖了，不需要memory功能，这样可以保证ai接收到所有数据，缺点是当上下文过大时整个上下文会多许多无用数据，导致token的转化率不高，这个功能只是用来做保底措施的，当rag功能无法使用时，使用调取上下文的加medicalAssistant的定义，临时代替使用rag功能。
+                </div>
+            </div>
+
+            <div class="section">
+                <h4>错误分析</h4>
+                <ul>
+                    <li><strong>"项目比较小"不是真正的设计理由</strong>——核心原因是 <strong>数据的实时性</strong>：用药记录和提醒任务在持续变化，缓存的 Conversation Memory 会使用过时数据</li>
+                    <li><strong>遗漏了"简单性"这个关键优点</strong>：不需要配置 ChatMemoryProvider、不需要管理会话生命周期、每次调用完全独立、天然支持水平扩展</li>
+                    <li><strong>定位描述不准确</strong>：MedicalAssistant 不是 "RAG 的临时替代品"——它在 <strong>RagService 中也是核心执行引擎</strong>（正常流程和降级流程最终都调用 <code>assistant.chat()</code>）</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    <strong>不使用 @MemoryId 的根本原因：</strong>每次请求的用药数据、提醒等上下文 <strong>必须实时重新构建</strong>——药品清单可能被修改、服药记录随时更新、提醒任务状态在变化。如果缓存了历史对话 Memory，AI 会基于过时数据回答，这在医疗场景下是危险的。<br><br>
+                    <strong>无状态设计的优点：</strong>
+                    <ol>
+                        <li>每次调用完全独立，上下文由调用方显式控制</li>
+                        <li>不需要配置 ChatMemoryProvider 和 ChatMemoryStore</li>
+                        <li>不需要管理会话的生命周期、过期、清理</li>
+                        <li>天然支持水平扩展——任意请求可以落到任意实例</li>
+                    </ol>
+                    <strong>MedicalAssistant 的定位：统一的 AI 出口</strong>，而非 RAG 的"备用方案"：
+                    <pre>// RagService.java — 正常流程（走 RAG）：
+String augmentedPrompt = buildAugmentedPrompt(relevantDocs, personalContext, question);
+return assistant.chat(augmentedPrompt);  // ← 同样调用 assistant
+
+// RagService.java — 降级流程（RAG 失败时）：
+return assistant.chat(fallbackContext + "\n\n用户问题: " + question);  // ← 也是 assistant</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ 第3题 ═══════════════════════════════ -->
+    <div class="question-card mid-score" id="q3">
+        <div class="q-header">
+            <h2>第3题：AssistantController vs RagAssistantController</h2>
+            <div class="q-meta">
+                <span class="badge badge-score mid">得分 3/5</span>
+                <span class="badge badge-diff">第一轮 · 架构与设计</span>
+                <span class="tag tag-webflux">SSE</span>
+                <span class="tag tag-ai">RAG</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="wrong">你的回答</h4>
+                <div class="user-answer">
+                    区别是有无使用rag功能，前者适合使用在日常问题，询问一些药品的情况，后者适用于一些独特性的问题，例如自己的用药计划的设计与修改，通过rag获取最适合的情况，不会出现大模型的幻读。
+                </div>
+            </div>
+
+            <div class="section">
+                <h4>错误分析</h4>
+                <ul>
+                    <li><strong>遗漏了 AssistantController 通过 MedicalContextBuilder 拉取个人数据</strong>——它不是简单的通用问答</li>
+                    <li><strong>遗漏了 /health-knowledge 端点</strong>——这是为未登录用户/家属设计的重要产品功能</li>
+                    <li><strong>"不会出现幻觉"太绝对</strong>——应解释其原理：给大模型"开卷考试"而非"闭卷作答"</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    <strong>核心区别总结：</strong>
+                    <table class="compare-table">
+                        <tr><th>维度</th><th>AssistantController</th><th>RagAssistantController</th></tr>
+                        <tr>
+                            <td>数据源</td>
+                            <td>仅个人数据（Feign 拉取）</td>
+                            <td>知识库向量检索 + 个人数据</td>
+                        </tr>
+                        <tr>
+                            <td>知识增强</td>
+                            <td>❌ 无</td>
+                            <td>✅ RAG（Embedding → KNN → Prompt 增强）</td>
+                        </tr>
+                        <tr>
+                            <td>接口</td>
+                            <td>/ai/medicine/question<br>/ai/medicine/today-advice</td>
+                            <td>/ai/rag/ask（需登录）<br>/ai/rag/health-knowledge（无需登录）</td>
+                        </tr>
+                        <tr>
+                            <td>降级策略</td>
+                            <td>Feign 调用失败 → 空数据占位</td>
+                            <td>检索失败 → 自动降级为纯大模型回答</td>
+                        </tr>
+                        <tr>
+                            <td>适用场景</td>
+                            <td>日常用药咨询、今日用药总结</td>
+                            <td>需要医学专业知识背书的问题</td>
+                        </tr>
+                    </table>
+                    <br>
+                    <strong>关键端点——/ai/rag/health-knowledge：</strong>
+                    <pre>// 不需要登录，不关联任何用户数据，纯知识库问答
+@PostMapping(value = "/health-knowledge", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+public Flux&lt;ServerSentEvent&lt;String&gt;&gt; askHealthKnowledge(@Valid @RequestBody RagQueryDTO dto) {
+    // 不传 elderId，不注入个人上下文
+    return ragService.askWithRag(null, dto.getQuestion())...
+}</pre>
+                    这个端点的设计意图是让<strong>未登录用户或家属</strong>也能查询通用健康知识。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ 第4题 ═══════════════════════════════ -->
+    <div class="question-card mid-score" id="q4">
+        <div class="q-header">
+            <h2>第4题：安全配置矛盾</h2>
+            <div class="q-meta">
+                <span class="badge badge-score mid">得分 2.5/5</span>
+                <span class="badge badge-diff">第一轮 · 架构与设计</span>
+                <span class="tag tag-spring">Security</span>
+                <span class="tag tag-java">JWT</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="wrong">你的回答</h4>
+                <div class="user-answer">
+                    未登录的用户会直接在elderId为1的账号的背景下进行对应的ai使用，会导致该用户的信息泄露，这是一个测试编写，在一个独立的theme文件中测试rag功能的，后续开发结束会修改。
+                </div>
+            </div>
+
+            <div class="section">
+                <h4>错误分析</h4>
+                <ul>
+                    <li><strong>没有识别出架构级矛盾</strong>：permitAll 全部放行 → JWT 过滤器不解析 Token → SecurityUtil.getCurrentUserId() <strong>永远返回 null</strong> → 永远走 elderId=1 兜底</li>
+                    <li><strong>遗漏了知识库管理接口的安全漏洞</strong>：KnowledgeBaseController 路由 /ai/kb/** 也在白名单内，任何人都可以上传/删除/修改知识库</li>
+                    <li><strong>没有提到缺少技术债务标记</strong>：代码中没有任何 TODO/FIXME 标记</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    <strong>三个层次的问题：</strong>
+                    <ol>
+                        <li><strong>逻辑自相矛盾</strong>：permitAll("/ai/**") 告诉 Spring Security "所有 AI 路径都不需要 JWT 认证"。即使前端带了 Authorization 头，JwtAuthenticationFilter 也会直接放行不解析，SecurityContext 中永远不会有 Authentication 对象，<code>SecurityUtil.getCurrentUserId()</code> 永远返回 null，elderId=1 的兜底分支成为 <strong>唯一可行的路径</strong>。</li>
+                        <li><strong>知识库管理接口完全暴露</strong>：KnowledgeBaseController 的路由是 /ai/kb/**，也在白名单内。意味着任何人都可以：
+                            <pre># 不需要任何认证即可操作知识库
+POST   /ai/kb/document          # 上传文档
+DELETE /ai/kb/document/{id}     # 删除文档
+PUT    /ai/kb/document/{id}     # 修改文档
+POST   /ai/kb/sync-from-news    # 触发资讯同步</pre>
+                        </li>
+                        <li><strong>缺少技术债务追踪</strong>：代码里没有 TODO/FIXME/@Deprecated 标记。</li>
+                    </ol>
+                    <strong>正确的修复方向：</strong>
+                    <pre>// SecurityConfig.java — 细化白名单
+@Override
+protected String[] permitAllPaths() {
+    return new String[]{
+        "/ai/rag/health-knowledge"  // 仅公开健康知识问答
+        // 其余接口全部需要认证
+    };
+}
+
+// RagAssistantController.java — 移除测试兜底
+// ⚠️ 测试通过后删除下面这段：
+// if (elderId == null) {
+//     elderId = 1;
+//     log.info("未获取到登录用户，使用默认测试账号 elderId=1");
+// }</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ 第5题 ═══════════════════════════════ -->
+    <div class="question-card low-score" id="q5">
+        <div class="q-header">
+            <h2>第5题：RedisEmbeddingStore KNN 检索</h2>
+            <div class="q-meta">
+                <span class="badge badge-score">得分 1.5/8</span>
+                <span class="badge badge-diff">第二轮 · 核心实现</span>
+                <span class="tag tag-redis">Redis Stack</span>
+                <span class="tag tag-ai">HNSW</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="wrong">你的回答</h4>
+                <div class="user-answer">
+                    1. embeddingModel提供，参数通过@embedding声明传递。<br>
+                    2. 为了获得向量的相似度，原始值代表当前向量的值。<br>
+                    3. 不清楚。
+                </div>
+            </div>
+
+            <div class="section">
+                <h4>错误分析</h4>
+                <ul>
+                    <li><strong>第1问完全错误</strong>：KNN 语法是 <strong>Redis Stack (RediSearch)</strong> 的查询语法，不是 embeddingModel 提供的</li>
+                    <li><strong>$BLOB 参数传递</strong>：通过 <code>FTSearchParams.addParam("BLOB", queryVector)</code> 绑定，不是"声明传递"</li>
+                    <li><strong>Score 转换理解不够</strong>：原始值是 COSINE 距离（范围 [0,2]），需要 <code>1.0 - 距离</code> 转为相似度</li>
+                    <li><strong>第3问未回答</strong></li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    <strong>1. KNN 查询语法与参数传递：</strong>
+                    <pre>// RediSearch 的 KNN 查询语法（非 embeddingModel 提供）
+String query = "*=>[KNN " + maxResults + " @embedding $BLOB AS score]";
+
+// $BLOB 是参数占位符，通过 FTSearchParams 绑定实际值
+FTSearchParams params = FTSearchParams.searchParams()
+    .addParam("BLOB", queryVector)   // ← 在这里绑定：占位符名 → 字节数组
+    .dialect(2)                      // ← RediSearch 方言版本
+    .limit(0, maxResults);
+
+// @embedding 是索引中向量字段的名称（创建索引时定义的 HNSW 向量字段）</pre>
+
+                    <strong>2. Score 转换：</strong>
+                    <pre>// 索引创建时指定：DISTANCE_METRIC COSINE
+// COSINE 距离范围 [0, 2]：0 = 完全相同，1 = 正交，2 = 完全相反
+// 转换公式：相似度 = 1.0 - COSINE距离
+//   距离 0.0 → 相似度 1.0（最相关）
+//   距离 0.35 → 相似度 0.65（刚好达到阈值）
+//   距离 2.0 → 相似度 -1.0（被过滤）
+
+double score = scoreStr != null ? 1.0 - Double.parseDouble(scoreStr) : 0.0;
+if (score < minScore) continue;  // minScore 默认 0.65</pre>
+
+                    <strong>3. 检索异常的处理策略与潜在问题：</strong>
+                    <ol>
+                        <li><strong>静默失败</strong>——catch 后只打 log 返回空列表，调用方（RagService）无法区分"没有匹配结果"和"Redis 挂了"</li>
+                        <li><strong>Score 转换有精度风险</strong>——<code>Double.parseDouble(scoreStr)</code> 可能抛 NumberFormatException，没有被单独 try-catch</li>
+                        <li><strong>没有区分异常类型</strong>——索引不存在需要重建 vs 连接失败需要重试 vs 语法错误需要告警，三种场景处理策略完全不同</li>
+                        <li><strong>降级路径不一致</strong>——search() 失败返回空列表，embeddingModel.embed() 失败抛异常，两种失败的降级行为不统一</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="section">
+                <h4 class="correct">改进建议（代码示例）</h4>
+                <pre>@Override
+public EmbeddingSearchResult&lt;TextSegment&gt; search(EmbeddingSearchRequest request) {
+    try {
+        // ... 执行检索 ...
+        return new EmbeddingSearchResult<>(matches);
+    } catch (redis.clients.jedis.exceptions.JedisConnectionException e) {
+        // 连接失败：应重试或明确向上抛异常让调用方走降级
+        log.error("Redis 连接失败，无法执行向量检索", e);
+        throw new RuntimeException("向量检索服务不可用", e);
+    } catch (redis.clients.jedis.exceptions.JedisDataException e) {
+        // 索引不存在：尝试重建
+        log.warn("索引 {} 可能不存在，尝试重建", indexName);
+        ensureIndexExists();
+        return new EmbeddingSearchResult<>(List.of());
+    } catch (NumberFormatException e) {
+        log.error("Score 解析失败: {}", e.getMessage());
+        return new EmbeddingSearchResult<>(List.of());
+    }
+}</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ 第6题 ═══════════════════════════════ -->
+    <div class="question-card low-score" id="q6">
+        <div class="q-header">
+            <h2>第6题：IngestionPipeline 文档摄取管道</h2>
+            <div class="q-meta">
+                <span class="badge badge-score mid">得分 3.5/8</span>
+                <span class="badge badge-diff">第二轮 · 核心实现</span>
+                <span class="tag tag-ai">Embedding</span>
+                <span class="tag tag-java">Chunking</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="wrong">部分错误</h4>
+                <div class="user-answer">
+                    使用递归字符切分，先按段落切分，段落长再按句子切分，这样医学文档中，一些总结的段落是能够保存的，段落长的话一般是功能详细描述，通过重叠字数衔接也能保证一下句子不会断关联，分批交，当多线程调用时，片段之间会发生错乱。
+                </div>
+            </div>
+
+            <div class="section">
+                <h4>错误分析</h4>
+                <ul>
+                    <li>第1问漏了具体参数（maxChunkSize=500, maxOverlap=50）和医学文档的结构化短句弱点</li>
+                    <li><strong>第2问错误严重</strong>——embedAll() <strong>不是分批</strong>，是一次性提交；且"多线程片段错乱"是错的（不存在并发）</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    <strong>1. 递归切分策略与医学文档适配：</strong>
+                    <pre>// 配置参数
+elderly.rag.chunk.max-size: 500     // 最大 500 字符
+elderly.rag.chunk.max-overlap: 50   // 相邻重叠 50 字符
+
+// 代码实现
+var splitter = DocumentSplitters.recursive(maxChunkSize, maxOverlap);
+List&lt;TextSegment&gt; segments = splitter.split(Document.from(text));
+
+// 切分策略：段落 → 句子 → 字符（递归降级）
+// 优点：总结性段落完整保留
+// 弱点：药品说明书的结构化短句（如"【用法用量】一次2粒，一日3次"）
+//       一个 500 字符的 chunk 可能混杂多个不相关的药理学主题</pre>
+
+                    <strong>2. embedAll() 的真实行为：</strong>
+                    <pre>// embedAll() 是一次性同步提交，不是分批！
+List&lt;Embedding&gt; embeddings = embeddingModel.embedAll(segments).content();
+// 100 个片段 = 1 个 HTTP 请求发给 DashScope API
+
+// 风险：
+// ① 超时风险：DashScope embedding API 超时 30s，100 个片段可能超时
+// ② 部分失败无法恢复：没有断点续传，不知道哪几个片段成功了
+// ③ 无重试机制：整个 ingest() 没有 @Retryable，一次失败全丢
+
+// 改进方案：分批发送
+private List&lt;Embedding&gt; embedBatch(List&lt;TextSegment&gt; segments, int batchSize) {
+    List&lt;Embedding&gt; all = new ArrayList&lt;&gt;();
+    for (int i = 0; i &lt; segments.size(); i += batchSize) {
+        int end = Math.min(i + batchSize, segments.size());
+        List&lt;TextSegment&gt; batch = segments.subList(i, end);
+        all.addAll(embeddingModel.embedAll(batch).content());
+        log.info("嵌入进度: {}/{}", end, segments.size());
+    }
+    return all;
+}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ 第7题 ═══════════════════════════════ -->
+    <div class="question-card low-score" id="q7">
+        <div class="q-header">
+            <h2>第7题：MedicalContextBuilder 上下文格式化与优化</h2>
+            <div class="q-meta">
+                <span class="badge badge-score">得分 2.5/7</span>
+                <span class="badge badge-diff">第二轮 · 核心实现</span>
+                <span class="tag tag-feign">Feign</span>
+                <span class="tag tag-java">Concurrency</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="wrong">部分错误</h4>
+                <div class="user-answer">
+                    不友好，这样里面用到的空格和转行，没有用汇编语言整理，ai一般用.md文档格式接受，可以转为.md风格的输出，改为并行，后续不清楚，可能是使用线程池方式实现，第3问不清楚。
+                </div>
+            </div>
+
+            <div class="section">
+                <h4>错误分析</h4>
+                <ul>
+                    <li><strong>"改为 .md 风格"与 SystemMessage 中的禁令直接冲突</strong>：SystemMessage 明确禁止 Markdown</li>
+                    <li>并行方案说得太笼统，没给出具体实现（CompletableFuture）</li>
+                    <li>第3问关于 Map&lt;String, Object&gt; 泛型擦除的风险完全未答</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    <strong>1. 格式优化（在纯文本约束下）：</strong>
+                    <pre>// MedicalAssistant.java 的硬性约束：
+@SystemMessage("""
+    ...
+    禁止使用 Markdown 语法：不要添加 #标题、分割线、代码块、表格、纯数字序号列表、大量加粗符号(**)
+    ...""")
+// 所以不能改 Markdown！只能在纯文本下优化
+
+// 优化前（当前代码）：
+//   1,布洛芬,一次2粒,一日3次,提醒时间 08:00      ← CSV 风格，无字段标签
+
+// 优化后：
+//   1. 「布洛芬」剂量：一次2粒 | 频率：一日3次 | 提醒：08:00
+//      状态：今日已服 (08:15)</pre>
+
+                    <strong>2. 并行优化方案（CompletableFuture）：</strong>
+                    <pre>@Override
+public String buildAndFormat(Integer elderId) {
+    if (elderId == null) return "（无个人数据）";
+
+    // 三个 Feign 调用互不依赖 → 并行执行
+    var f1 = CompletableFuture.supplyAsync(() -> fetchMedicines(elderId));
+    var f2 = CompletableFuture.supplyAsync(() -> fetchTodayRecords(elderId));
+    var f3 = CompletableFuture.supplyAsync(() -> fetchTodayTasks());
+
+    // 等待全部完成（耗时 = max(T1, T2, T3)，而非 T1+T2+T3）
+    CompletableFuture.allOf(f1, f2, f3).join();
+
+    Map&lt;String, Object&gt; contextMap = new LinkedHashMap&lt;&gt;();
+    contextMap.put("medicines", f1.getNow(List.of()));
+    contextMap.put("todayRecords", f2.getNow(List.of()));
+    contextMap.put("todayTasks", f3.getNow(List.of()));
+
+    return formatToNaturalLanguage(contextMap);
+}</pre>
+
+                    <strong>3. Map&lt;String, Object&gt; 的隐患——泛型擦除：</strong>
+                    <pre>// 当前：Result&lt;T&gt; 的 T 在运行时被擦除为 Object
+Result&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; result = medicineFeignClient.getMedicinesByElderId(elderId);
+List&lt;Map&lt;String, Object&gt;&gt; medicines = result.getData();  // 运行时强转！
+
+// 如果 Feign 返回的 data 实际类型变了，编译期零保障：
+//   - ClassCastException 在运行时才暴露
+//   - 没有编译器检查字段名拼写（medicineName vs medicine_name）
+
+// 正确做法：定义具体 DTO
+@Data
+public class MedicineVO {
+    private String medicineName;
+    private String dosage;
+    private String frequency;
+    private String remindTime;
+}
+
+// Feign 接口改为：
+@GetMapping("/medicine/look/{elderId}")
+Result&lt;List&lt;MedicineVO&gt;&gt; getMedicinesByElderId(@PathVariable("elderId") Integer elderId);
+// 编译期安全 + IDE 自动补全 + 重构安全</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ 第8题 ═══════════════════════════════ -->
+    <div class="question-card low-score" id="q8">
+        <div class="q-header">
+            <h2>第8题：RagService 双层异常处理</h2>
+            <div class="q-meta">
+                <span class="badge badge-score">得分 1.5/7</span>
+                <span class="badge badge-diff">第二轮 · 核心实现</span>
+                <span class="tag tag-java">Exception</span>
+                <span class="tag tag-ai">RAG</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="wrong">你的回答</h4>
+                <div class="user-answer">
+                    都是在rag失效的情况下，捕获到retrieveRelevant的异常处理，因为askWithRag里面调用了retrieveRelevant，被程序异常接受，不合理，因为这时候应该使用降级处理。
+                </div>
+            </div>
+
+            <div class="section">
+                <h4>错误分析</h4>
+                <ul>
+                    <li>没有区分两层 catch 各自覆盖的<strong>不同异常来源</strong></li>
+                    <li>没有发现内层 catch 吞异常导致外层 catch <strong>永远捕获不到 search 的异常</strong></li>
+                    <li>降级逻辑的"行为不一致"没有被识别——embed 失败走降级，search 失败不走降级</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    <strong>两层 catch 的异常范围分析：</strong>
+                    <div class="flow">askWithRag() 外层 try-catch（可捕获 embed 异常 ✅）
+  └─ retrieveRelevant()
+       ├─ embeddingModel.embed(question)        ← 抛异常 → 不被内层捕获 → 穿透到外层 ✅ 走降级
+       └─ embeddingStore.search(request)
+            └─ 内层 try-catch                   ← 抛异常 → 被内层吞掉 → 返回空列表 ❌ 不走降级</div>
+                    <br>
+                    <strong>关键发现：</strong>embeddingStore.search() 内部已经 catch 了所有异常并返回空列表，<strong>从不向外层抛异常</strong>。因此 askWithRag() 的外层 catch 只能捕获到 embeddingModel.embed() 的异常。<br><br>
+                    而 search() 失败时，外层 catch 完全感知不到——代码拿着"空的参考知识"继续组装 Prompt，用户收到的回答没有知识库增强，但完全不知道检索失败了。<br><br>
+                    <strong>同一个方法内行为不一致：</strong>embed 失败 → 有降级兜底（走 fallbackContext），search 失败 → 静默返回空列表（无降级）。这是设计缺陷。
+                </div>
+            </div>
+
+            <div class="section">
+                <h4 class="correct">修复方案</h4>
+                <pre>// 方案：让 retrieveRelevant 统一抛异常，由外层统一降级
+private List&lt;EmbeddingMatch&lt;TextSegment&gt;&gt; retrieveRelevant(String question) {
+    // embed 异常直接向上抛
+    Embedding queryEmbedding = embeddingModel.embed(question).content();
+    EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+            .queryEmbedding(queryEmbedding)
+            .maxResults(maxResults)
+            .minScore(minScore)
+            .build();
+    // search 异常也向上抛（不再内部吞掉）
+    EmbeddingSearchResult&lt;TextSegment&gt; result = embeddingStore.search(request);
+    return result.matches();
+}
+// 外层 askWithRag() 的 try-catch 统一处理所有降级</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ 第9题 ═══════════════════════════════ -->
+    <div class="question-card low-score" id="q9">
+        <div class="q-header">
+            <h2>第9题：LangChain4j Flux 与 Reactor 桥接</h2>
+            <div class="q-meta">
+                <span class="badge badge-score">得分 1/5</span>
+                <span class="badge badge-diff">第三轮 · 技术栈与集成</span>
+                <span class="tag tag-ai">LangChain4j</span>
+                <span class="tag tag-webflux">Reactor</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="wrong">你的回答</h4>
+                <div class="user-answer">
+                    第1问不清楚；第2问是实现帮忙实现流式输出。
+                </div>
+            </div>
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    <strong>1. 返回 Flux&lt;String&gt; 的底层机制：</strong>
+                    <br>
+                    LangChain4j 的 <strong>AIServiceFactory 代理</strong>在运行时检测 @AiService 接口方法的返回类型：
+                    <ul>
+                        <li>返回 <code>String</code> → 自动注入 <code>chat-model</code> bean（普通同步调用）</li>
+                        <li>返回 <code>Flux&lt;String&gt;</code> / <code>Flowable&lt;String&gt;</code> 等 → 自动注入 <code>streaming-chat-model</code> bean（流式调用）</li>
+                    </ul>
+                    <strong>Flux 返回类型本身就是"路由开关"</strong>——不需要任何显式配置或注解来区分。框架根据方法签名自动选择使用哪个模型 bean。
+                    <br><br>
+                    <strong>2. langchain4j-reactor 的真正作用——桥接：</strong>
+                    <br>
+                    LangChain4j 原生的流式 API 是基于回调的 <code>StreamingResponseHandler</code>：
+                    <pre>// LangChain4j 原生回调风格
+streamingChatModel.generate(userMessage, new StreamingResponseHandler&lt;AiMessage&gt;() {
+    @Override public void onNext(String token) { /* 处理每个 token */ }
+    @Override public void onComplete(Response&lt;AiMessage&gt; response) { /* 完成 */ }
+    @Override public void onError(Throwable error) { /* 错误 */ }
+});</pre>
+                    而 Spring WebFlux 需要 <code>Flux&lt;String&gt;</code>。
+                    <br><br>
+                    <strong>langchain4j-reactor</strong> 提供了适配层（ReactorStreamingResponseHandler），将回调风格转为 Reactive Streams 的 Flux，使得 @AiService 接口可以直接返回 Flux&lt;String&gt;。<br><br>
+                    <strong>没有这个依赖，@AiService 接口无法返回 Flux&lt;String&gt;。</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ 第10题 ═══════════════════════════════ -->
+    <div class="question-card low-score" id="q10">
+        <div class="q-header">
+            <h2>第10题：Flux.defer() 的真实作用</h2>
+            <div class="q-meta">
+                <span class="badge badge-score">得分 1/5</span>
+                <span class="badge badge-diff">第三轮 · 技术栈与集成</span>
+                <span class="tag tag-webflux">WebFlux</span>
+                <span class="tag tag-java">Reactor</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="wrong">你的回答</h4>
+                <div class="user-answer">
+                    失去流式输出的效果，如果context出现问题，那么这个message就会出现上下文对应不上问题，导致回答准确性下降。
+                </div>
+            </div>
+
+            <div class="section">
+                <h4>错误分析</h4>
+                <ul>
+                    <li><strong>方向完全错误</strong>——不是"失去流式输出"</li>
+                    <li>真正的问题是 <strong>阻塞 Netty 事件循环线程（Event Loop Blocking）</strong></li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    <strong>真正的问题：Event Loop Blocking</strong>
+                    <pre>// ❌ 没有 Flux.defer()：阻塞了 Netty 事件循环线程
+@PostMapping(value = "/medicine/question", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+public Flux&lt;ServerSentEvent&lt;String&gt;&gt; processMedicineQuestion(@RequestBody String question) {
+    Integer elderId = securityUtil.getCurrentUserId();
+    // ⚠️ 这行在请求处理线程（Netty Event Loop）上立即执行
+    // buildAndFormat() 内部是同步 Feign 调用 —— 阻塞 IO！
+    String context = contextBuilder.buildAndFormat(elderId);  // 可能阻塞 2-3 秒
+    return assistant.chat(context + "\n\n用户问题: " + question)...;
+}
+
+// ✅ 使用 Flux.defer()：延迟到订阅时执行
+return Flux.defer(() -> {
+    // defer 确保阻塞操作在订阅线程（Scheduler）上执行
+    // 不影响 Netty Event Loop 处理其他请求
+    String context = contextBuilder.buildAndFormat(elderId);
+    return assistant.chat(context + "\n\n用户问题: " + question);
+})</pre>
+                    <strong>核心原理：</strong><br>
+                    WebFlux 的请求处理运行在 Netty Event Loop 线程上，线程数很少（通常 = CPU 核数）。<br>
+                    <code>buildAndFormat()</code> 内部是<strong>同步阻塞的 Feign HTTP 调用</strong>（阻塞 IO），如果在 Event Loop 线程上执行，会阻塞整个线程几秒钟，导致其他请求排队等待 → 服务吞吐量暴跌。<br>
+                    <code>Flux.defer()</code> 将阻塞操作<strong>延迟到有人订阅 Flux 时</strong>，WebFlux 会在 Scheduler 线程上执行订阅代码，Event Loop 线程立即释放去处理下一个请求。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ 第11题 ═══════════════════════════════ -->
+    <div class="question-card low-score" id="q11">
+        <div class="q-header">
+            <h2>第11题：SSE 格式一致性</h2>
+            <div class="q-meta">
+                <span class="badge badge-score">得分 0/5</span>
+                <span class="badge badge-diff">第三轮 · 技术栈与集成</span>
+                <span class="tag tag-webflux">SSE</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="wrong">你的回答</h4>
+                <div class="user-answer">不清楚。</div>
+            </div>
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    <strong>两者的关键区别——[DONE] 结束事件：</strong>
+                    <table class="compare-table">
+                        <tr><th>端点</th><th>返回格式</th><th>是否有 [DONE] 事件</th></tr>
+                        <tr>
+                            <td>AssistantController<br>/ai/medicine/question</td>
+                            <td><code>token.map(data -> SSE)</code></td>
+                            <td>❌ 无结束标记</td>
+                        </tr>
+                        <tr>
+                            <td>AssistantController<br>/ai/medicine/today-advice</td>
+                            <td><code>token.map(data -> SSE)</code></td>
+                            <td>❌ 无结束标记</td>
+                        </tr>
+                        <tr>
+                            <td>RagAssistantController<br>/ai/rag/ask</td>
+                            <td><code>token.map(data -> SSE) + [DONE]</code></td>
+                            <td>✅ 有结束标记</td>
+                        </tr>
+                        <tr>
+                            <td>RagAssistantController<br>/ai/rag/health-knowledge</td>
+                            <td><code>token.map(data -> SSE) + [DONE]</code></td>
+                            <td>✅ 有结束标记</td>
+                        </tr>
+                    </table>
+                    <br>
+                    <strong>这是一个一致性问题——属于遗漏：</strong>
+                    <pre>// AssistantController — 没有 [DONE] 事件
+return Flux.defer(() -> { ... return assistant.chat(fullMessage); })
+    .map(token -> ServerSentEvent.&lt;String&gt;builder()
+            .data(token)
+            .build());
+// ↑ 流结束后没有通知前端
+
+// RagAssistantController — 有 [DONE] 事件
+return ragService.askWithRag(elderId, dto.getQuestion())
+    .map(token -> ServerSentEvent.&lt;String&gt;builder()
+            .data(token)
+            .build())
+    .concatWith(Mono.just(  // ← 显式拼接结束事件
+            ServerSentEvent.&lt;String&gt;builder()
+                    .data("[DONE]")
+                    .build()));</pre>
+                    如果前端（<code>elder_care/pages/ai/chat.vue</code>）依赖 [DONE] 来判断流结束（比如：收到 [DONE] → 隐藏加载动画 → 标记消息完成），那么 AssistantController 的流永远不会触发这个逻辑，前端可能一直显示"加载中"。<br><br>
+                    <strong>修复：统一在 AssistantController 中也拼接 [DONE] 事件，或者统一都不加，由前端监听流的 complete 事件（而非 [DONE] 标记）。</strong>无论哪种方案，关键是保持一致性。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ 第12题 ═══════════════════════════════ -->
+    <div class="question-card low-score" id="q12">
+        <div class="q-header">
+            <h2>第12题：空实现的方法</h2>
+            <div class="q-meta">
+                <span class="badge badge-score">得分 1/5</span>
+                <span class="badge badge-diff">第三轮 · 技术栈与集成</span>
+                <span class="tag tag-java">Design</span>
+                <span class="tag tag-redis">Redis</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="wrong">你的回答</h4>
+                <div class="user-answer">
+                    未完善的功能，只是单纯保证一下业务的流通性，完整实现的话，使用List。
+                </div>
+            </div>
+
+            <div class="section">
+                <h4>错误分析</h4>
+                <ul>
+                    <li><strong>"使用 List" 不是答案</strong>——问题不是数据结构，而是调用方无法区分"功能未实现"和"确实没有数据"</li>
+                    <li>这是 <strong>契约欺骗</strong>——返回 <code>Result.success(空列表)</code> 让调用方以为查询成功</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    <strong>当前代码的问题——契约欺骗：</strong>
+                    <pre>public List&lt;KnowledgeDocVO&gt; listDocuments(String keyword) {
+    log.info("查询知识库文档列表，关键词: {}", keyword);
+    return List.of();  // ← 返回"查询成功，但没数据"
+}
+// 调用方收到 Result.success([]) → 以为真的没有文档
+// 实际上：功能根本没实现，应该有 50 篇文档但查不出来！</pre>
+                    <strong>正确做法——明确告知未实现：</strong>
+                    <pre>public List&lt;KnowledgeDocVO&gt; listDocuments(String keyword) {
+    throw new UnsupportedOperationException("知识库文档列表功能尚未实现");
+    // 或者返回错误码：
+    // throw new BusinessException(AiErrorCode.AI_SERVICE_ERROR, "功能开发中");
+}</pre>
+                    <strong>完整实现需要 Redis 数据结构支持：</strong>
+                    <pre>// 上传文档时维护索引
+public String uploadDocument(KnowledgeDocumentDTO dto) {
+    String docId = UUID.randomUUID().toString();
+    // ... 入库逻辑 ...
+
+    // 维护文档 ID 集合
+    jedis.sadd("rag:doc:ids", docId);
+    // 维护文档元信息 Hash
+    Map&lt;String, String&gt; meta = Map.of(
+        "title", dto.getTitle(),
+        "category", dto.getCategory(),
+        "chunk_count", String.valueOf(chunkIds.size()),
+        "created_at", String.valueOf(System.currentTimeMillis())
+    );
+    jedis.hset("rag:doc:" + docId + ":meta", meta);
+
+    return docId;
+}
+
+// 查询时从 Redis 组装
+public List&lt;KnowledgeDocVO&gt; listDocuments(String keyword) {
+    Set&lt;String&gt; docIds = jedis.smembers("rag:doc:ids");
+    List&lt;KnowledgeDocVO&gt; vos = new ArrayList&lt;&gt;();
+    for (String docId : docIds) {
+        Map&lt;String, String&gt; meta = jedis.hgetAll("rag:doc:" + docId + ":meta");
+        if (meta.isEmpty()) continue;
+        // keyword 过滤
+        if (keyword != null && !meta.get("title").contains(keyword)) continue;
+        vos.add(KnowledgeDocVO.builder()
+            .id(docId)
+            .title(meta.get("title"))
+            .category(meta.get("category"))
+            .chunkCount(Integer.valueOf(meta.get("chunk_count")))
+            .build());
+    }
+    return vos;
+}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ 第13题 ═══════════════════════════════ -->
+    <div class="question-card mid-score" id="q13">
+        <div class="q-header">
+            <h2>第13题：注释质量 — CLAUDE.md 规范</h2>
+            <div class="q-meta">
+                <span class="badge badge-diff">第四轮 · 代码质量</span>
+                <span class="tag tag-java">Javadoc</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    <strong>MedicalContextBuilder 接口的注释存在的问题：</strong>
+                    <pre>/**
+ * 医疗上下文构建器                          ← ✅ 有类级注释
+ * 把药物服务,提醒服务的数据聚合,构建ai可理解的自然语言上下文  ← ❌ 问题多
+ */
+public interface MedicalContextBuilder {
+    String buildAndFormat(Integer elderId);  // ← ❌ 方法无 Javadoc
+}</pre>
+
+                    <strong>对照 CLAUDE.md 规范检查：</strong>
+                    <ol>
+                        <li><strong>Javadoc 缺失</strong>——规范要求"所有类、方法、字段都要有 Javadoc"，但 buildAndFormat() 方法没有 Javadoc</li>
+                        <li><strong>标点不规范</strong>——"把药物服务,提醒服务" 应该用中文顿号"、"或全角逗号"，不应使用半角逗号</li>
+                        <li><strong>中英文混排不规范</strong>——"构建ai可理解的自然语言上下文" 中英文之间应有空格："构建 AI 可理解的自然语言上下文"</li>
+                        <li><strong>缺少 @author</strong>——虽然方法不需要 @author，但接口应有 @author 标签（参考其他类的规范）</li>
+                        <li><strong>缺少参数说明</strong>——@param elderId 的含义、取值范围、null 的处理策略都应说明</li>
+                        <li><strong>缺少返回值说明</strong>——@return 返回的字符串格式没有描述</li>
+                    </ol>
+
+                    <strong>符合规范的写法：</strong>
+                    <pre>/**
+ * 医疗上下文构建器
+ * <p>
+ * 通过 Feign 聚合药物服务、提醒服务的数据，
+ * 构建 AI 可理解的自然语言上下文文本。
+ * 采用无状态设计：每次请求都重新拉取最新数据。
+ *
+ * @author 郑
+ */
+public interface MedicalContextBuilder {
+
+    /**
+     * 构建并格式化医疗上下文
+     * <p>
+     * 聚合老人的药品清单、今日用药记录、今日提醒任务，
+     * 格式化为自然语言文本供 AI 模型理解。
+     *
+     * @param elderId 老人 ID，为 null 时返回空上下文占位文本
+     * @return 自然语言格式的医疗上下文，包含"药品清单""今日用药记录""今日提醒"三个板块
+     */
+    String buildAndFormat(Integer elderId);
+}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ 第14题 ═══════════════════════════════ -->
+    <div class="question-card mid-score" id="q14">
+        <div class="q-header">
+            <h2>第14题：Feign 返回裸 Map 的类型安全问题</h2>
+            <div class="q-meta">
+                <span class="badge badge-diff">第四轮 · 代码质量</span>
+                <span class="tag tag-feign">Feign</span>
+                <span class="tag tag-java">Type Safety</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    <strong>当前设计——全部使用裸 Map：</strong>
+                    <pre>// MedicineFeignClient.java
+@GetMapping("/medicine/look/{elderId}")
+Result&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; getMedicinesByElderId(...);
+//          ^^^^^^^^^^^^^^^^^^^^^^^^ 裸 Map，零类型安全
+
+// RemindFeignClient.java
+@GetMapping("/remind/task/today")
+Result&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; getTodayTasks();
+
+// NewsFeignClient.java
+@GetMapping("/health-knowledge/articles/sync")
+Result&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt; getArticlesForSync(...);</pre>
+
+                    <strong>利与弊分析：</strong>
+                    <table class="compare-table">
+                        <tr><th>维度</th><th>裸 Map（当前）</th><th>类型化 DTO</th></tr>
+                        <tr><td>灵活性</td><td>✅ 字段变更不需要改代码</td><td>❌ 需要同步更新 DTO</td></tr>
+                        <tr><td>编译期安全</td><td>❌ 零保障，等着 ClassCastException</td><td>✅ 字段名拼错编译不过</td></tr>
+                        <tr><td>IDE 支持</td><td>❌ 无自动补全</td><td>✅ 字段名自动补全</td></tr>
+                        <tr><td>重构安全</td><td>❌ 字段改名，运行时才能发现</td><td>✅ IDE 一键重命名</td></tr>
+                        <tr><td>文档可读性</td><td>❌ 看接口不知道返回什么字段</td><td>✅ DTO 即文档</td></tr>
+                        <tr><td>泛型反序列化</td><td>❌ Jackson 推断，可能出错</td><td>✅ 明确的目标类型</td></tr>
+                    </table>
+                    <br>
+                    <strong>泛型擦除的实际风险：</strong>
+                    <pre>// Java 泛型在运行时被擦除
+Result&lt;List&lt;Map&lt;String, Object&gt;&gt;&gt;
+// 运行时变成：
+Result&lt;List&gt;    // T 被擦除
+
+// Jackson 反序列化 data 字段时，不知道应该创建什么类型：
+// 它只能"猜"——创建一个 ArrayList，每个元素创建一个 LinkedHashMap
+// 如果实际 data 是 null、String、或其他类型 → ClassCastException</pre>
+
+                    <strong>重构方案——定义 DTO：</strong>
+                    <pre>// elderly-ai/src/main/java/com/elderlycare/ai/dto/MedicineDTO.java
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class MedicineDTO {
+    private Long id;
+    private String medicineName;
+    private String dosage;
+    private String frequency;
+    private String remindTime;
+    private Integer elderId;
+}
+
+// 修改 Feign 接口：
+@GetMapping("/medicine/look/{elderId}")
+Result&lt;List&lt;MedicineDTO&gt;&gt; getMedicinesByElderId(@PathVariable("elderId") Integer elderId);
+//      ^^^^^^^^^^^^^^^^^^^ 类型安全！
+
+// 在 MedicalContextBuilderImpl 中使用：
+List&lt;MedicineDTO&gt; medicines = result.getData();
+for (MedicineDTO m : medicines) {
+    sb.append(String.format("%d.「%s」剂量：%s | 频率：%s | 提醒：%s\n",
+            index++, m.getMedicineName(), m.getDosage(),
+            m.getFrequency(), m.getRemindTime()));
+    // ↑ IDE 自动补全 + 字段改名自动重构 + 拼错编译报错
+}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ 第15题 ═══════════════════════════════ -->
+    <div class="question-card mid-score" id="q15">
+        <div class="q-header">
+            <h2>第15题：temperature 配置 — 医疗场景下的取值</h2>
+            <div class="q-meta">
+                <span class="badge badge-diff">第四轮 · 代码质量</span>
+                <span class="tag tag-ai">LLM</span>
+            </div>
+        </div>
+        <div class="q-body">
+
+            <div class="section">
+                <h4 class="correct">完整答案</h4>
+                <div class="correct-answer">
+                    <strong>当前配置：</strong>
+                    <pre>langchain4j:
+  community:
+    dashscope:
+      chat-model:
+        model-name: qwen3.6-flash
+        temperature: 0.4      # ← 偏低，限制随机性
+        timeout: 60s</pre>
+
+                    <strong>temperature = 0.4 在医疗场景下是否合适？</strong>
+                    <br><br>
+                    <strong>✅ 合适，甚至可以考虑更低（0.1-0.3）</strong>
+
+                    <table class="compare-table">
+                        <tr><th>Temperature</th><th>特性</th><th>适用场景</th></tr>
+                        <tr><td>0.0 - 0.3</td><td>确定性输出，每次回答几乎一致</td><td>医疗建议、法律咨询、代码生成</td></tr>
+                        <tr><td>0.4 - 0.7</td><td>有一定灵活性，输出有变化</td><td>对话、客服、内容总结</td></tr>
+                        <tr><td>0.8 - 1.2</td><td>高创造性，输出不可预测</td><td>创意写作、头脑风暴</td></tr>
+                    </table>
+                    <br>
+                    <strong>为什么医疗场景需要低 temperature：</strong>
+                    <ol>
+                        <li><strong>安全性优先</strong>——医疗信息需要准确、一致。高 temperature 意味着相同问题可能得到不同的答案，在用药建议场景下是危险的</li>
+                        <li><strong>事实性 > 创造性</strong>——用户需要的是可靠的医学知识复述，不是"创新"的回答</li>
+                        <li><strong>与 RAG 搭配有意义</strong>——RAG 已经给定了参考知识，低 temperature 让模型更贴近检索结果而非自由发挥，有效抑制幻觉</li>
+                    </ol>
+
+                    <strong>改进建议——根据端点区分 temperature：</strong>
+                    <pre>// 方案1：在 application.yml 中配置不同的 AI Service Bean
+// 方案2：在 @AiService 接口覆盖 temperature（如果 LangChain4j 支持）
+// 方案3：在 SystemMessage 中用提示词控制严谨程度
+
+// 医疗建议端点 → 低 temperature（0.1-0.2）
+// 日常对话端点 → 中 temperature（0.4-0.5）
+// 健康知识泛化 → 中 temperature（0.3-0.4）
+
+// 如果 DashScope 支持在请求时覆盖（通过 @UserMessage 或参数），
+// 可以动态调整：药品交互问题 → 更严谨，今天的健康总结 → 稍灵活</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 底部总结 ===== -->
+    <div class="header" style="margin-top: 40px;">
+        <h2 style="font-size: 1.5em;">📊 薄弱项总结</h2>
+        <p style="color: #888; margin-top: 10px;">按知识点分类</p>
+    </div>
+
+    <div class="question-card" style="border-left: 4px solid var(--gold);">
+        <div class="q-body">
+            <table class="compare-table">
+                <tr>
+                    <th>薄弱领域</th>
+                    <th>涉及题目</th>
+                    <th>建议</th>
+                </tr>
+                <tr>
+                    <td><strong>LangChain4j 框架原理</strong></td>
+                    <td>第2、9题</td>
+                    <td>深入学习 @AiService 代理机制、StreamingResponseHandler → Flux 桥接原理</td>
+                </tr>
+                <tr>
+                    <td><strong>WebFlux / Reactor 响应式编程</strong></td>
+                    <td>第10、11题</td>
+                    <td>理解 Event Loop 线程模型、Flux.defer()、SSE 格式规范</td>
+                </tr>
+                <tr>
+                    <td><strong>Redis Stack / RediSearch</strong></td>
+                    <td>第5、12题</td>
+                    <td>理解 HNSW 索引、KNN 查询语法、COSINE 距离 → 相似度转换</td>
+                </tr>
+                <tr>
+                    <td><strong>RAG 架构设计</strong></td>
+                    <td>第1、3、6、8题</td>
+                    <td>掌握 Embedding → 检索 → Prompt 增强 → 生成的完整链路和降级策略</td>
+                </tr>
+                <tr>
+                    <td><strong>异常处理设计</strong></td>
+                    <td>第5、6、8题</td>
+                    <td>区分静默失败 vs 抛异常、降级策略一致化、部分失败恢复</td>
+                </tr>
+                <tr>
+                    <td><strong>类型安全与代码规范</strong></td>
+                    <td>第7、13、14题</td>
+                    <td>用 DTO 替代裸 Map、完善 Javadoc、遵循团队规范</td>
+                </tr>
+                <tr>
+                    <td><strong>安全设计</strong></td>
+                    <td>第4题</td>
+                    <td>JWT 认证与白名单的协调、测试代码与正式代码的隔离</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <div style="text-align: center; padding: 40px; color: #555; font-size: 0.85em;">
+        <p>📋 elderly-ai 模块面试错题集 · 生成于 2026-06-08</p>
+        <p>老年护理云平台 (Elderly Care Cloud Platform) · @author 郑</p>
+    </div>
+
+</div>
+
+</body>
+</html>

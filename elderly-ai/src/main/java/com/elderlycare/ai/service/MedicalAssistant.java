@@ -28,6 +28,11 @@ public interface MedicalAssistant {
             - Do NOT diagnose, prescribe, or provide personal medical advice.
             - Always remind users to consult a licensed healthcare provider for specific concerns.
             - Keep answers concise, factual, and easy to understand.
+
+            【输出格式要求】
+            - 使用自然段落行文，像人工整理的解答文案，排版简洁自然。
+            - 禁止使用 Markdown 语法：不要添加 #标题、分割线、代码块、表格、纯数字序号列表、大量加粗符号(**)。
+            - 内容可以分层次讲解，用语句衔接区分模块，重点内容用文字强调即可。
             """)
     @UserMessage("{{question}}")
     Flux<String> chat(@V("question") String userMessage);

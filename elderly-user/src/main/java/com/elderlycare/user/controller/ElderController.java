@@ -9,6 +9,9 @@ import com.elderlycare.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 老人健康档案控制器
+ */
 @RestController
 @RequestMapping("/user/elder")
 @RequiredArgsConstructor
@@ -17,7 +20,9 @@ public class ElderController {
     private final UserService userService;
     private final ElderMapper elderMapper;
 
-    //传递老人id给认证模块
+    /**
+     * 根据认证用户ID查询老人档案（供认证模块调用）
+     */
     @GetMapping("/byUserId")
     public Result<Elder> getElderByUserId(@RequestParam Integer userId) {
         Elder elder = elderMapper.selectByUserId(userId);
@@ -27,30 +32,40 @@ public class ElderController {
         return Result.success(elder);
     }
 
-    //创建老人档案
+    /**
+     * 创建老人健康档案（幂等：已存在则直接返回）
+     */
     @PostMapping("/create")
     public Result<Elder> createElder(@RequestParam Integer userId) {
         Elder elder = elderMapper.selectByUserId(userId);
         if (elder != null) {
-            return Result.success(elder);  // 已存在，直接返回（幂等）
+            return Result.success(elder);
         }
-        // 不存在，新建
         Elder newElder = new Elder();
         newElder.setUserId(userId);
         elderMapper.insert(newElder);
-        return Result.success(newElder);  // 插入后 MyBatis-Plus 自动回填 id
+        return Result.success(newElder);
     }
 
+    /**
+     * 生成老人绑定二维码（Base64格式）
+     */
     @GetMapping("/qrcode/generate")
     public Result<String> generateQRCode() {
         return userService.generateElderQRCode();
     }
 
+    /**
+     * 家属扫描解析老人二维码信息
+     */
     @GetMapping("/qrcode/parse")
     public Result<ElderInfoDTO> parseQRCode(@RequestParam String qrCodeToken) {
         return userService.parseQRCode(qrCodeToken);
     }
 
+    /**
+     * 获取指定老人已绑定的家属成员列表
+     */
     @GetMapping("/families")
     public Result<?> getBoundFamilyMembers(@RequestParam Integer elderId) {
         return userService.getBoundFamilyMembers(elderId);

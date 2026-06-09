@@ -36,3 +36,17 @@ build/
 mysql-data/
 redis-data/
 .docker-data/
+
+### Personal files ###
+.env
+elderly-auth/cp.txt
+docs/mianshi/
+docs/code-review/
+项目总结*.md
+dsco/
+
+### Claude Code ###
+.claude/
+
+# Claude local settings (personal)
+.claude/settings.local.json

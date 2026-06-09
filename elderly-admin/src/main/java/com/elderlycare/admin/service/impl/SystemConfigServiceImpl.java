@@ -7,6 +7,8 @@ import com.elderlycare.admin.entity.SystemConfig;
 import com.elderlycare.admin.mapper.SystemConfigMapper;
 import com.elderlycare.admin.service.SystemConfigService;
 import com.elderlycare.admin.vo.SystemConfigVO;
+import com.elderlycare.common.core.exception.BusinessException;
+import com.elderlycare.common.core.util.BeanUtil;
 import com.elderlycare.common.core.result.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -29,6 +32,11 @@ public class SystemConfigServiceImpl implements SystemConfigService {
 
     private final SystemConfigMapper systemConfigMapper;
 
+    /**
+     * 获取所有系统配置
+     *
+     * @return 配置列表
+     */
     @Override
     public Result<List<SystemConfigVO>> getAllConfigs() {
         List<SystemConfig> configs = systemConfigMapper.selectList(null);
@@ -38,18 +46,30 @@ public class SystemConfigServiceImpl implements SystemConfigService {
         return Result.success(voList);
     }
 
+    /**
+     * 根据键获取系统配置
+     *
+     * @param key 配置键
+     * @return 配置信息
+     */
     @Override
     public Result<SystemConfigVO> getConfigByKey(String key) {
         SystemConfig config = systemConfigMapper.selectOne(
                 new LambdaQueryWrapper<SystemConfig>()
                         .eq(SystemConfig::getConfigKey, key));
         if (config == null) {
-            return Result.error(AdminErrorCode.CONFIG_NOT_FOUND.getCode(),
-                    AdminErrorCode.CONFIG_NOT_FOUND.getMessage());
+            throw new BusinessException(AdminErrorCode.CONFIG_NOT_FOUND);
         }
         return Result.success(toVO(config));
     }
 
+    /**
+     * 更新单个系统配置
+     *
+     * @param key   配置键
+     * @param value 配置值
+     * @return 更新结果
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> updateConfig(String key, String value) {
@@ -57,8 +77,7 @@ public class SystemConfigServiceImpl implements SystemConfigService {
                 new LambdaQueryWrapper<SystemConfig>()
                         .eq(SystemConfig::getConfigKey, key));
         if (config == null) {
-            return Result.error(AdminErrorCode.CONFIG_NOT_FOUND.getCode(),
-                    AdminErrorCode.CONFIG_NOT_FOUND.getMessage());
+            throw new BusinessException(AdminErrorCode.CONFIG_NOT_FOUND);
         }
         config.setConfigValue(value);
         config.setUpdateTime(LocalDateTime.now());
@@ -67,18 +86,30 @@ public class SystemConfigServiceImpl implements SystemConfigService {
         return Result.success(null, "系统配置更新成功");
     }
 
+    /**
+     * 批量更新系统配置
+     *
+     * @param configs 配置DTO列表
+     * @return 更新结果
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> batchUpdateConfigs(List<SystemConfigDTO> configs) {
+        // 批量查询所有需要的配置键
+        List<String> keys = configs.stream()
+                .map(SystemConfigDTO::getConfigKey)
+                .collect(Collectors.toList());
+        List<SystemConfig> existingConfigs = systemConfigMapper.selectList(
+                new LambdaQueryWrapper<SystemConfig>()
+                        .in(SystemConfig::getConfigKey, keys));
+        Map<String, SystemConfig> configMap = existingConfigs.stream()
+                .collect(Collectors.toMap(SystemConfig::getConfigKey, c -> c));
+
+        // 批量更新
         for (SystemConfigDTO dto : configs) {
-            SystemConfig config = systemConfigMapper.selectOne(
-                    new LambdaQueryWrapper<SystemConfig>()
-                            .eq(SystemConfig::getConfigKey, dto.getConfigKey()));
+            SystemConfig config = configMap.get(dto.getConfigKey());
             if (config != null) {
-                config.setConfigValue(dto.getConfigValue());
-                if (dto.getDescription() != null) {
-                    config.setDescription(dto.getDescription());
-                }
+                BeanUtil.copyNonNullProperties(dto, config);
                 config.setUpdateTime(LocalDateTime.now());
                 systemConfigMapper.updateById(config);
             } else {
@@ -97,11 +128,7 @@ public class SystemConfigServiceImpl implements SystemConfigService {
      */
     private SystemConfigVO toVO(SystemConfig config) {
         SystemConfigVO vo = new SystemConfigVO();
-        vo.setId(config.getId());
-        vo.setConfigKey(config.getConfigKey());
-        vo.setConfigValue(config.getConfigValue());
-        vo.setDescription(config.getDescription());
-        vo.setUpdateTime(config.getUpdateTime());
+        BeanUtil.copyProperties(config, vo);
         return vo;
     }
 }

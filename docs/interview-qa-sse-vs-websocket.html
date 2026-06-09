@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面试题：SSE vs WebSocket</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --card: #16213e;
+            --text: #e0e0e0;
+            --accent: #0f3460;
+            --hl: #e94560;
+            --green: #4ecca3;
+            --yellow: #f0a500;
+            --border: #2a2a4a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            line-height: 1.8;
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            color: var(--hl);
+            margin-bottom: 8px;
+        }
+        .meta {
+            text-align: center;
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 40px;
+        }
+        h2 {
+            color: var(--hl);
+            font-size: 20px;
+            margin: 36px 0 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+        h3 {
+            color: var(--yellow);
+            font-size: 16px;
+            margin: 20px 0 8px;
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 24px;
+            margin: 16px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+        }
+        th, td {
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            background: var(--accent);
+            color: #fff;
+        }
+        td:first-child {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .check { color: var(--green); }
+        .cross { color: var(--hl); }
+        code {
+            background: #0d1b2a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--green);
+        }
+        pre {
+            background: #0d1b2a;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            margin: 12px 0;
+            border: 1px solid var(--border);
+        }
+        .flow {
+            background: var(--accent);
+            border-left: 3px solid var(--hl);
+            padding: 12px 16px;
+            margin: 12px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 14px;
+        }
+        .wrong {
+            text-decoration: line-through;
+            color: #f44336;
+        }
+        .right {
+            color: var(--green);
+            font-weight: 600;
+        }
+        .summary {
+            background: #1b3a2d;
+            border: 1px solid var(--green);
+            border-radius: 10px;
+            padding: 20px 24px;
+            margin: 24px 0;
+            font-size: 15px;
+        }
+        .summary::before {
+            content: "💡 一句话总结";
+            display: block;
+            color: var(--green);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        ul { padding-left: 24px; margin: 8px 0; }
+        li { margin: 4px 0; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<h1>面试模拟 · SSE vs WebSocket</h1>
+<p class="meta">项目：老年护理云平台 | 模块：elderly-ai | 日期：2026-06-05</p>
+
+<h2>1. 面试题目</h2>
+<div class="card">
+    <p>「你的项目里 AI 助手用了 SSE 流式输出。说一下 SSE 是什么？和 WebSocket 有什么区别？为什么选 SSE 而不是 WebSocket？」</p>
+</div>
+
+<h2>2. 常见错误理解</h2>
+
+<h3>❌ "WebSocket 只能等数据完成后一起展示"</h3>
+<p>WebSocket 也是实时逐条推送，每条消息客户端立刻就能收到。如果只能最后一起展示，微信网页版、在线聊天室就都没法用了。</p>
+
+<h3>❌ "SSE 也是双向通道"</h3>
+<p>SSE 是单向的——只能服务器推给客户端。客户端要发消息必须另外发起 HTTP 请求。</p>
+
+<h2>3. SSE vs WebSocket 核心对比</h2>
+
+<table>
+    <tr>
+        <th>维度</th>
+        <th>SSE (Server-Sent Events)</th>
+        <th>WebSocket</th>
+    </tr>
+    <tr>
+        <td>方向</td>
+        <td><span class="cross">❌</span> 单向（服务端 → 客户端）</td>
+        <td><span class="check">✅</span> 双向全双工</td>
+    </tr>
+    <tr>
+        <td>协议</td>
+        <td>基于 HTTP，普通请求升级</td>
+        <td>独立协议 <code>ws://</code> / <code>wss://</code></td>
+    </tr>
+    <tr>
+        <td>实现复杂度</td>
+        <td>低 — Spring WebFlux 的 <code>Flux</code> + <code>MediaType.TEXT_EVENT_STREAM</code></td>
+        <td>高 — 需要握手处理器、心跳、重连逻辑</td>
+    </tr>
+    <tr>
+        <td>自动重连</td>
+        <td><span class="check">✅</span> 浏览器 <code>EventSource</code> 原生支持</td>
+        <td><span class="cross">❌</span> 需要自己实现</td>
+    </tr>
+    <tr>
+        <td>HTTP/2 多路复用</td>
+        <td><span class="check">✅</span> 兼容</td>
+        <td><span class="cross">❌</span> 不兼容</td>
+    </tr>
+    <tr>
+        <td>CDN/反向代理</td>
+        <td>无需特殊配置</td>
+        <td>需要代理支持 <code>Upgrade</code> 头</td>
+    </tr>
+    <tr>
+        <td>适用场景</td>
+        <td>AI 流式输出、股票行情、通知推送</td>
+        <td>即时聊天、在线游戏、协同编辑</td>
+    </tr>
+</table>
+
+<h2>4. 为什么 AI 对话选 SSE？</h2>
+
+<h3>原因一：场景匹配</h3>
+<div class="flow">
+    <strong>AI 对话的交互模式：</strong><br>
+    用户发消息 → 等 AI 回复完 → 用户再发消息 → 等 AI 回复完 → ...<br><br>
+    这是典型的"请求-响应"，完全串行。用户不会在 AI 回复到一半时同时发下一条消息。
+</div>
+
+<div class="flow">
+    <strong>SSE 的方案：</strong><br>
+    第1轮：<code>POST /ai/chat</code>（用户消息）→ <code>SSE 流</code>（AI 逐字回复）→ 流结束，HTTP 连接关闭<br>
+    第2轮：<code>POST /ai/chat</code>（用户第二条消息）→ <code>SSE 流</code> → 流结束，连接关闭<br>
+    每一轮"对话 → 回答"都是独立的 HTTP 请求，用完即释放。
+</div>
+
+<h3>原因二：实现简单</h3>
+<p>Spring Boot WebFlux 中，返回 <code>Flux&lt;ServerSentEvent&lt;String&gt;&gt;</code> 即可实现 SSE 流式输出。前端 <code>uni-app</code> 通过 <code>uni.request</code> + <code>onChunkReceived</code> 回调逐条接收数据。</p>
+
+<h3>原因三：基础设施友好</h3>
+<p>SSE 走普通 HTTP，Nginx、CDN、负载均衡、API 网关不需要任何特殊配置就能透传。WebSocket 需要反向代理开启 <code>Upgrade</code> 支持。</p>
+
+<h4>我们的项目实现</h4>
+<pre>
+// ChatController.java
+@PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+public Flux&lt;ServerSentEvent&lt;String&gt;&gt; chatStream(@RequestBody ChatRequest request) {
+    return medicalAssistant.chat(request);  // 返回流式 Flux
+}</pre>
+
+<h2>5. WebSocket 的双向能力真正该用在哪里？</h2>
+<div class="card">
+    <p>WebSocket 强在<strong>服务端主动发起推送</strong>和<strong>双方同时收发互不干扰</strong>。</p>
+    <p><strong>本项目中的正确用法：提醒推送</strong>——提醒服务检测到老人该吃药 → 主动推通知到家属手机 → 不需要家属先发请求过来。</p>
+    <p>这才是真正的"不需要请求"的场景。</p>
+</div>
+
+<h2>6. 常见追问：WebSocket 能不能替代 AI Memory？</h2>
+<div class="card">
+    <p><span class="wrong">错误想法：</span> WebSocket 保持长连接 → 对话历史存在连接对象里 → 不需要 Memory</p>
+    <p><span class="right">为什么不行：</span></p>
+    <ul>
+        <li><strong>连接断了就丢：</strong> 用户切后台、刷新页面、网络切换 → 新连接是全新对象 → 历史全部丢失</li>
+        <li><strong>多实例不共享：</strong> 负载均衡到不同服务器 → 各自的内存不互通 → 上下文断裂</li>
+        <li><strong>跨设备访问做不到：</strong> 用户在手机上聊完，想在电脑上继续 → 不同的 WebSocket 连接</li>
+    </ul>
+    <p>AI Memory 必须存在<strong>持久化存储</strong>（Redis/数据库）里，和连接状态解耦。</p>
+</div>
+
+<h2>7. 面试标准回答</h2>
+<div class="summary">
+    <p>"SSE 是基于 HTTP 的单向流式传输协议，服务端可以持续推送数据，客户端用浏览器原生的 EventSource 就能接收，自动支持重连。</p>
+    <p>和 WebSocket 的核心区别：<strong>SSE 单向</strong>，只支持服务端推客户端；<strong>WebSocket 双向全双工</strong>，双方可以随时互发消息。</p>
+    <p>AI 对话选 SSE 有三个原因：<strong>①场景匹配</strong>——用户提问→AI回答是单向流，没有双向需求；<strong>②实现简单</strong>——Spring WebFlux 的 Flux 天然支持 SSE，几行代码搞定；<strong>③基础设施友好</strong>——走普通 HTTP，网关/代理不需要特殊配置。</p>
+    <p>WebSocket 在本项目中用于提醒推送场景——服务端需要主动向客户端推送通知，这才需要双向通道的服务端主动推送能力。"</p>
+</div>
+
+</body>
+</html>

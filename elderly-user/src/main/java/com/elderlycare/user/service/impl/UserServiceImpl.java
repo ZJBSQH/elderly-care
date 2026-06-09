@@ -26,6 +26,9 @@ import java.util.*;
 import static com.elderlycare.common.core.exception.BaseErrorCode.*;
 import static com.elderlycare.user.dto.UserErrorCode.*;
 
+/**
+ * 用户服务实现类（老人健康档案、家属绑定等核心业务）
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -42,6 +45,9 @@ public class UserServiceImpl implements UserService {
     private final SecurityUtil securityUtil;
     private final AuthFeignClient authFeignClient;
 
+    /**
+     * 为当前老人用户生成绑定二维码，返回Base64编码的图片
+     */
     @Override
     public Result<String> generateElderQRCode() {
         Integer userId = getCurrentUserIdOrThrow();
@@ -65,6 +71,9 @@ public class UserServiceImpl implements UserService {
         return Result.success(qrCodeBase64);
     }
 
+    /**
+     * 家属扫描二维码后，解析并返回老人脱敏信息
+     */
     @Override
     public Result<ElderInfoDTO> parseQRCode(String qrCodeToken) {
         Integer userId = getCurrentUserIdOrThrow();
@@ -99,6 +108,9 @@ public class UserServiceImpl implements UserService {
         return Result.success(dto);
     }
 
+    /**
+     * 家属通过手机号绑定老人，校验双方用户类型后创建绑定关系
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> bindFamily(FamilyBindRequest request) {
@@ -144,6 +156,9 @@ public class UserServiceImpl implements UserService {
         return Result.success();
     }
 
+    /**
+     * 家属通过扫描二维码后确认绑定老人，记录绑定关系
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> bindElderByQRCode(FamilyBindConfirmRequest request) {
@@ -173,6 +188,9 @@ public class UserServiceImpl implements UserService {
         return Result.success();
     }
 
+    /**
+     * 家属解除与指定老人的绑定关系
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> unbindFamily(Integer elderId) {
@@ -192,6 +210,9 @@ public class UserServiceImpl implements UserService {
         return Result.success();
     }
 
+    /**
+     * 获取当前家属已绑定的所有老人信息列表
+     */
     @Override
     public Result<List<Map<String, Object>>> getBoundElders() {
         Integer userId = getCurrentUserIdOrThrow();
@@ -216,6 +237,9 @@ public class UserServiceImpl implements UserService {
         return Result.success(result);
     }
 
+    /**
+     * 获取指定老人已绑定的所有家属成员信息列表
+     */
     @Override
     public Result<List<Map<String, Object>>> getBoundFamilyMembers(Integer elderId) {
         List<Family> families = familyMapper.selectByElderId(elderId);
@@ -235,6 +259,9 @@ public class UserServiceImpl implements UserService {
     }
 
 
+    /**
+     * 从SecurityContext获取当前登录用户ID，未登录则抛出异常
+     */
     private Integer getCurrentUserIdOrThrow() {
         Integer userId = securityUtil.getCurrentUserId();
         if (userId == null) {
@@ -243,6 +270,9 @@ public class UserServiceImpl implements UserService {
         return userId;
     }
 
+    /**
+     * 根据用户ID获取老人档案，若不存在则自动创建
+     */
     private Elder getOrCreateElder(Integer userId) {
         Elder elder = elderMapper.selectByUserId(userId);
         if (elder == null) {
@@ -258,6 +288,9 @@ public class UserServiceImpl implements UserService {
         return elder;
     }
 
+    /**
+     * 对手机号中间四位进行脱敏处理（如 138****5678）
+     */
     private String maskPhone(String phone) {
         if (phone == null || phone.length() < PHONE_MASK_END) return phone;
         return phone.substring(0, PHONE_MASK_START) + "****" + phone.substring(PHONE_MASK_END);

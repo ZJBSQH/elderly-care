@@ -31,9 +31,14 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
     /** 无需认证的路径 */
     private static final String[] PERMIT_ALL = {
-            "/auth/login", "/auth/register", "/auth/sms", "/auth/password/reset", "/ws/"
+            "/auth/login", "/auth/register", "/auth/sms", "/auth/password/reset", "/ws/",
+            "/ai/",           // AI 问答及知识库（认证由 elderly-ai 服务自行控制）
+            "/health-knowledge/" // 健康知识资讯（公开阅读）
     };
 
+    /**
+     * 全局过滤：校验 JWT Token，将用户信息注入请求头后放行
+     */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
@@ -70,6 +75,9 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         return unauthorized(exchange, "缺少认证信息");
     }
 
+    /**
+     * 判断当前请求路径是否属于公开路径（无需认证）
+     */
     private boolean isPermitAll(String path) {
         for (String p : PERMIT_ALL) {
             if (path.startsWith(p)) {
@@ -79,6 +87,9 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         return false;
     }
 
+    /**
+     * 从请求头中提取 Bearer Token
+     */
     private String getTokenFromRequest(ServerHttpRequest request) {
         String bearerToken = request.getHeaders().getFirst("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
@@ -87,6 +98,9 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         return null;
     }
 
+    /**
+     * 解析 JWT Token，返回其中的 Claims 载荷
+     */
     private Claims parseToken(String token) {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         SecretKey key = Keys.hmacShaKeyFor(keyBytes);
@@ -97,11 +111,17 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
                 .getPayload();
     }
 
+    /**
+     * 返回 401 未授权响应并终止请求
+     */
     private Mono<Void> unauthorized(ServerWebExchange exchange, String message) {
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         return exchange.getResponse().setComplete();
     }
 
+    /**
+     * 返回过滤器执行顺序，值越小优先级越高
+     */
     @Override
     public int getOrder() {
         return -100;

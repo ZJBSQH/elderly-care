@@ -88,4 +88,14 @@ public interface NewsService {
      * 检查是否已收藏
      */
     Result<Boolean> checkIfCollected(Integer newsId);
+
+    /**
+     * 获取用于 RAG 知识库同步的文章列表（含正文全文）
+     * <p>
+     * 仅返回已上架（status=1）的文章，正文不做截断。
+     *
+     * @param category 分类过滤（可选，null 或空字符串表示全部）
+     * @return 文章数据列表，每个 map 包含 id、title、content、category、summary
+     */
+    Result<List<Map<String, Object>>> getArticlesForSync(String category);
 }

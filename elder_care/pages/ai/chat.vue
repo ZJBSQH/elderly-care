@@ -4,9 +4,28 @@
     <view class="chat-header">
       <text class="header-avatar">🤖</text>
       <view class="header-text">
-        <text class="header-title">AI 用药助手</text>
-        <text class="header-desc">智能用药咨询 · 仅供参考</text>
+        <text class="header-title">健康问答助手</text>
+        <text class="header-desc">智能用药咨询 · 健康知识 · 仅供参考</text>
       </view>
+    </view>
+
+    <!-- 模式切换 -->
+    <view class="mode-bar">
+      <view
+        class="mode-chip"
+        :class="{ active: chatMode === 'rag' }"
+        @click="switchMode('rag')"
+      >
+        <text>🧠 智能增强</text>
+      </view>
+      <view
+        class="mode-chip"
+        :class="{ active: chatMode === 'normal' }"
+        @click="switchMode('normal')"
+      >
+        <text>💬 普通问答</text>
+      </view>
+      <text class="mode-hint">{{ chatMode === 'rag' ? '结合知识库回答，更准确' : '仅凭AI自身知识回答' }}</text>
     </view>
 
     <!-- 消息列表 -->
@@ -19,8 +38,10 @@
       <!-- 欢迎提示 -->
       <view class="welcome-area" v-if="messages.length === 0">
         <text class="welcome-icon">💊</text>
-        <text class="welcome-title">你好！我是你的用药助手</text>
-        <text class="welcome-desc">可以问我用药时间、副作用、注意事项等问题</text>
+        <text class="welcome-title">你好！关于用药和健康的问题都可以问我</text>
+        <text class="welcome-desc">
+          {{ chatMode === 'rag' ? '我会结合医学知识库为你提供更准确的回答' : '我会尽力为你解答健康相关的问题' }}
+        </text>
       </view>
 
       <!-- 消息气泡 -->
@@ -72,19 +93,10 @@
         📋 今日用药建议
       </button>
       <view class="input-row">
-        <button
-          class="voice-btn"
-          :class="{ recording: isRecording }"
-          :disabled="loading"
-          @touchstart="startVoice"
-          @touchend="stopVoice"
-        >
-          {{ isRecording ? '🔴' : '🎤' }}
-        </button>
         <input
           class="msg-input"
           v-model="inputText"
-          placeholder="输入用药问题..."
+          placeholder="输入问题..."
           :disabled="loading"
           @confirm="sendMsg"
           maxlength="200"
@@ -103,7 +115,7 @@
 
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
-import { askAIQuestion, getAITodayAdvice } from '../../api/ai.js'
+import { askAIQuestion, getAITodayAdvice, askHealthKnowledge, askRagQuestion } from '../../api/ai.js'
 import { useUserStore } from '../../store/user.js'
 
 const userStore = useUserStore()
@@ -112,90 +124,39 @@ const messages = ref([])
 const inputText = ref('')
 const loading = ref(false)
 const scrollTop = ref(0)
-const isRecording = ref(false)
-let recorderManager = null
+const chatMode = ref('rag')  // 默认 RAG 模式
 
 const quickQuestions = [
-  '阿司匹林什么时候吃最好？',
   '降压药漏服了怎么办？',
-  '多种药可以一起吃吗？',
-  '服药期间能喝酒吗？'
+  '布洛芬和阿司匹林能一起吃吗？',
+  '吃头孢类抗生素能喝酒吗？',
+  '二甲双胍什么时候吃比较好？'
 ]
 
-// 处理 URL 参数（来自 ai-assistant 入口）
+// 处理 URL 参数
 onMounted(() => {
   try {
     const pages = getCurrentPages()
     const currentPage = pages[pages.length - 1]
     const action = currentPage?.options?.action
-    const useVoice = currentPage?.options?.voice
     if (action === 'todayAdvice') {
       getTodayAdvice()
-    }
-    if (useVoice === '1') {
-      setTimeout(() => startVoice(), 500)
     }
   } catch (e) { /* ignore */ }
 })
 
-/** 初始化录音管理器 */
-function getRecorderManager() {
-  if (recorderManager) return recorderManager
-  recorderManager = uni.getRecorderManager()
-  recorderManager.onStop((res) => {
-    isRecording.value = false
-    if (res.tempFilePath) {
-      uni.showToast({ title: '语音录制完成', icon: 'success', duration: 1000 })
-      inputText.value = '[语音消息] 请帮我查看用药建议'
-      sendMsg()
-    }
-  })
-  recorderManager.onError((err) => {
-    isRecording.value = false
-    uni.showToast({ title: '录音失败: ' + (err.errMsg || '未知错误'), icon: 'none', duration: 2000 })
-  })
-  return recorderManager
-}
-
-/** 开始录音 */
-function startVoice() {
-  if (loading.value) return
-  try {
-    const rm = getRecorderManager()
-    rm.start({ format: 'mp3', duration: 60000 })
-    isRecording.value = true
-  } catch (e) {
-    uni.showToast({ title: '录音功能暂不可用', icon: 'none', duration: 1500 })
-  }
-}
-
-/** 停止录音 */
-function stopVoice() {
-  if (!isRecording.value) return
-  try {
-    const rm = getRecorderManager()
-    rm.stop()
-  } catch (e) {
-    isRecording.value = false
-  }
-}
-
 function scrollToBottom() {
-  nextTick(() => {
-    scrollTop.value = scrollTop.value + 99999
-  })
+  nextTick(() => { scrollTop.value = scrollTop.value + 99999 })
+}
+
+function switchMode(mode) {
+  chatMode.value = mode
 }
 
 /** 发送消息 */
 async function sendMsg() {
   const text = inputText.value.trim()
   if (!text || loading.value) return
-
-  const elderId = userStore.elderId
-  if (!elderId) {
-    uni.showToast({ title: '无法获取用户信息', icon: 'none', duration: 2000 })
-    return
-  }
 
   // 添加用户消息
   messages.value.push({ role: 'user', text, displayText: text })
@@ -209,7 +170,11 @@ async function sendMsg() {
   scrollToBottom()
 
   try {
-    const events = await askAIQuestion(elderId, text)
+    // 根据模式选择接口
+    const events = chatMode.value === 'rag'
+      ? await askHealthKnowledge(text)
+      : await askAIQuestion(text)
+
     const errorEvent = events.find(e => e.type === 'error')
     if (errorEvent) {
       aiMsg.text = errorEvent.data
@@ -218,21 +183,14 @@ async function sendMsg() {
       return
     }
 
-    // 拼接所有内容
     const fullText = events
       .filter(e => e.type === 'message')
       .map(e => e.data)
       .join('')
 
-    if (!fullText) {
-      aiMsg.text = '抱歉，暂时无法回答这个问题，请稍后再试。'
-      aiMsg.displayText = aiMsg.text
-      aiMsg.isStreaming = false
-      return
-    }
-
-    // 打字机效果
-    aiMsg.text = fullText
+    aiMsg.text = fullText || (chatMode.value === 'rag'
+      ? '抱歉，暂时无法回答这个问题。请确认知识库中已有相关文档。'
+      : '抱歉，暂时无法回答这个问题，请稍后再试。')
     await typewriterEffect(aiMsg)
   } catch (e) {
     aiMsg.text = '网络请求失败，请检查网络后重试。'
@@ -243,22 +201,15 @@ async function sendMsg() {
   }
 }
 
-/** 快捷问题 */
 function sendQuick(question) {
   inputText.value = question
   sendMsg()
 }
 
-/** 获取今日用药建议 */
+/** 获取今日用药建议（RAG 模式用 RAG 接口，普通模式用旧接口） */
 async function getTodayAdvice() {
-  const elderId = userStore.elderId
-  if (!elderId) {
-    uni.showToast({ title: '无法获取用户信息', icon: 'none', duration: 2000 })
-    return
-  }
-
-  // 添加用户消息
-  messages.value.push({ role: 'user', text: '今日用药建议', displayText: '请给我今天的用药建议' })
+  const displayText = '请给我今天的用药建议'
+  messages.value.push({ role: 'user', text: '今日用药建议', displayText })
 
   const aiMsg = { role: 'ai', text: '', displayText: '', isStreaming: true }
   messages.value.push(aiMsg)
@@ -266,7 +217,10 @@ async function getTodayAdvice() {
   scrollToBottom()
 
   try {
-    const events = await getAITodayAdvice(elderId)
+    const events = chatMode.value === 'rag'
+      ? await askRagQuestion(displayText)
+      : await getAITodayAdvice()
+
     const errorEvent = events.find(e => e.type === 'error')
     if (errorEvent) {
       aiMsg.text = errorEvent.data
@@ -291,12 +245,11 @@ async function getTodayAdvice() {
   }
 }
 
-/** 打字机效果：逐字显示 */
+/** 打字机效果 */
 function typewriterEffect(msg) {
   const fullText = msg.text
   msg.displayText = ''
 
-  // 每 30ms 显示 2 个字符
   const charsPerTick = 2
   const interval = 20
   let pos = 0
@@ -339,14 +292,9 @@ function typewriterEffect(msg) {
   flex-shrink: 0;
 }
 
-.header-avatar {
-  font-size: 56rpx;
-}
+.header-avatar { font-size: 56rpx; }
 
-.header-text {
-  display: flex;
-  flex-direction: column;
-}
+.header-text { display: flex; flex-direction: column; }
 
 .header-title {
   font-size: $elder-font-large;
@@ -359,6 +307,40 @@ function typewriterEffect(msg) {
   color: rgba(255,255,255,0.75);
 }
 
+// ========== 模式切换 ==========
+.mode-bar {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 28rpx;
+  background: $color-white;
+  flex-shrink: 0;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+
+.mode-chip {
+  padding: 8rpx 24rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  background: #f5f7fa;
+  color: $color-text-light;
+  border: 2rpx solid transparent;
+  transition: all 0.2s;
+
+  &.active {
+    background: rgba(64,158,255,0.08);
+    color: $color-primary;
+    border-color: $color-primary;
+    font-weight: 600;
+  }
+}
+
+.mode-hint {
+  font-size: 22rpx;
+  color: $color-text-placeholder;
+  margin-left: auto;
+}
+
 // ========== 消息列表 ==========
 .msg-list {
   flex: 1;
@@ -366,9 +348,7 @@ function typewriterEffect(msg) {
   overflow-y: auto;
 }
 
-.bottom-spacer {
-  height: 24rpx;
-}
+.bottom-spacer { height: 24rpx; }
 
 // ========== 欢迎区域 ==========
 .welcome-area {
@@ -377,8 +357,18 @@ function typewriterEffect(msg) {
 }
 
 .welcome-icon { font-size: 80rpx; display: block; margin-bottom: 20rpx; }
-.welcome-title { display: block; font-size: $elder-font-large; font-weight: bold; color: $color-text; margin-bottom: 12rpx; }
-.welcome-desc { display: block; font-size: $elder-font-small; color: $color-text-placeholder; }
+.welcome-title {
+  display: block;
+  font-size: $elder-font-large;
+  font-weight: bold;
+  color: $color-text;
+  margin-bottom: 12rpx;
+}
+.welcome-desc {
+  display: block;
+  font-size: $elder-font-small;
+  color: $color-text-placeholder;
+}
 
 // ========== 消息行 ==========
 .msg-row {
@@ -387,9 +377,7 @@ function typewriterEffect(msg) {
   gap: 16rpx;
   margin-bottom: 28rpx;
 
-  &.user {
-    flex-direction: row-reverse;
-  }
+  &.user { flex-direction: row-reverse; }
 }
 
 .msg-avatar {
@@ -415,7 +403,6 @@ function typewriterEffect(msg) {
     background: linear-gradient(135deg, $color-primary, #36cfc9);
     color: #fff;
     border-top-right-radius: 6rpx;
-
     .msg-text { color: #fff; }
   }
 
@@ -446,9 +433,7 @@ function typewriterEffect(msg) {
 }
 
 // ========== 加载动画 ==========
-.loading-bubble {
-  padding: 24rpx 36rpx;
-}
+.loading-bubble { padding: 24rpx 36rpx; }
 
 .typing-dots {
   display: flex;
@@ -498,9 +483,7 @@ function typewriterEffect(msg) {
   color: $color-primary;
   border: 2rpx solid rgba(64, 158, 255, 0.25);
 
-  &:active {
-    background: rgba(64, 158, 255, 0.1);
-  }
+  &:active { background: rgba(64, 158, 255, 0.1); }
 }
 
 // ========== 底部输入区 ==========
@@ -514,8 +497,8 @@ function typewriterEffect(msg) {
 
 .advice-btn {
   width: 100%;
-  height: 68rpx;
-  line-height: 68rpx;
+  height: 72rpx;
+  line-height: 72rpx;
   background: #f7fcff;
   color: $color-primary;
   font-size: $elder-font-small;
@@ -528,31 +511,6 @@ function typewriterEffect(msg) {
   display: flex;
   gap: 16rpx;
   align-items: center;
-}
-
-.voice-btn {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 50%;
-  background: #f5f7fa;
-  border: 2rpx solid #e8e8e8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 36rpx;
-  flex-shrink: 0;
-  padding: 0;
-
-  &.recording {
-    background: #fff1f0;
-    border-color: #ff4d4f;
-    animation: pulse 1s ease-in-out infinite;
-  }
-}
-
-@keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.4); }
-  50% { box-shadow: 0 0 0 20rpx rgba(255, 77, 79, 0); }
 }
 
 .msg-input {

@@ -1,14 +1,15 @@
 package com.elderlycare.health.controller;
 
 import com.elderlycare.common.core.result.Result;
+import com.elderlycare.common.security.util.SecurityUtil;
 import com.elderlycare.health.dto.HealthDTO;
+import com.elderlycare.health.dto.HealthQuery;
 import com.elderlycare.health.service.HealthService;
 import com.elderlycare.health.vo.AlertVO;
 import com.elderlycare.health.vo.HealthVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,7 +35,24 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class HealthController {
 
+    /** 健康记录服务 */
     private final HealthService healthService;
+    /** 安全工具类，用于获取当前用户信息 */
+    private final SecurityUtil securityUtil;
+
+    /**
+     * 解析 elderId：优先使用前端传参，为空则从 JWT 安全上下文自动获取
+     */
+    private Integer resolveElderId(Integer requestElderId) {
+        if (requestElderId != null) {
+            return requestElderId;
+        }
+        Integer userId = securityUtil.getCurrentUserId();
+        if (userId == null) {
+            throw new com.elderlycare.common.core.exception.BusinessException(400, "无法识别当前用户身份");
+        }
+        return userId;
+    }
 
     /**
      * 保存健康记录
@@ -44,6 +62,9 @@ public class HealthController {
      */
     @PostMapping("/record")
     public Result<HealthVO> saveHealth(@Valid @RequestBody HealthDTO healthDTO) {
+        if (healthDTO.getElderId() == null) {
+            healthDTO.setElderId(resolveElderId(null));
+        }
         log.info("保存健康记录请求，elderId: {}", healthDTO.getElderId());
         return healthService.saveHealth(healthDTO);
     }
@@ -55,26 +76,34 @@ public class HealthController {
      * @return 当天健康记录列表
      */
     @GetMapping("/today")
-    public Result<List<HealthVO>> getTodayRecords(@RequestParam Integer elderId) {
+    public Result<List<HealthVO>> getTodayRecords(@RequestParam(required = false) Integer elderId) {
+        elderId = resolveElderId(elderId);
         log.info("查询当天健康记录，elderId: {}", elderId);
         return healthService.getTodayRecords(elderId);
     }
 
     /**
-     * 获取历史健康记录
-     *
-     * @param elderId 老人ID
-     * @param start   开始时间
-     * @param end     结束时间
-     * @return 历史健康记录列表
+     * 获取历史健康记录（支持分页）
      */
     @GetMapping("/history")
-    public Result<List<HealthVO>> getHistoryRecords(
-            @RequestParam Integer elderId,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end) {
-        log.info("查询历史健康记录，elderId: {}, start: {}, end: {}", elderId, start, end);
-        return healthService.getHistoryRecords(elderId, start, end);
+    public Result<List<HealthVO>> getHistoryRecords(HealthQuery query) {
+        query.setElderId(resolveElderId(query.getElderId()));
+        log.info("查询历史健康记录，elderId: {}", query.getElderId());
+        return healthService.getHistoryRecords(query);
+    }
+
+    /**
+     * 获取健康趋势数据（按日期过滤，不分页）
+     */
+    @GetMapping("/trend")
+    public Result<List<HealthVO>> getTrendData(HealthQuery query) {
+        query.setElderId(resolveElderId(query.getElderId()));
+        if (query.getStartDate() == null) query.setStartDate(LocalDateTime.now().minusDays(30));
+        if (query.getEndDate() == null) query.setEndDate(LocalDateTime.now());
+        query.setPageNum(0);
+        query.setPageSize(0);
+        log.info("查询健康趋势数据，elderId: {}", query.getElderId());
+        return healthService.getHistoryRecords(query);
     }
 
     /**
@@ -84,7 +113,8 @@ public class HealthController {
      * @return 最新健康记录
      */
     @GetMapping("/latest")
-    public Result<HealthVO> getLatestRecord(@RequestParam Integer elderId) {
+    public Result<HealthVO> getLatestRecord(@RequestParam(required = false) Integer elderId) {
+        elderId = resolveElderId(elderId);
         log.info("查询最新健康记录，elderId: {}", elderId);
         return healthService.getLatestRecord(elderId);
     }
@@ -96,7 +126,8 @@ public class HealthController {
      * @return 统计数据
      */
     @GetMapping("/statistics")
-    public Result<Map<String, Object>> getStatistics(@RequestParam Integer elderId) {
+    public Result<Map<String, Object>> getStatistics(@RequestParam(required = false) Integer elderId) {
+        elderId = resolveElderId(elderId);
         log.info("查询健康统计信息，elderId: {}", elderId);
         return healthService.getStatistics(elderId);
     }
@@ -133,7 +164,8 @@ public class HealthController {
      * @return 预警列表
      */
     @GetMapping("/alert/list")
-    public Result<List<AlertVO>> getAlertList(@RequestParam Integer elderId) {
+    public Result<List<AlertVO>> getAlertList(@RequestParam(required = false) Integer elderId) {
+        elderId = resolveElderId(elderId);
         log.info("查询预警列表，elderId: {}", elderId);
         return healthService.getAlertList(elderId);
     }
@@ -145,7 +177,8 @@ public class HealthController {
      * @return 未读预警数量
      */
     @GetMapping("/alert/unread")
-    public Result<Integer> getUnreadAlertCount(@RequestParam Integer elderId) {
+    public Result<Integer> getUnreadAlertCount(@RequestParam(required = false) Integer elderId) {
+        elderId = resolveElderId(elderId);
         log.info("查询未读预警数量，elderId: {}", elderId);
         return healthService.getUnreadAlertCount(elderId);
     }
@@ -169,7 +202,8 @@ public class HealthController {
      * @return 操作结果
      */
     @PostMapping("/alert/read-all")
-    public Result<Void> markAllAlertsRead(@RequestParam Integer elderId) {
+    public Result<Void> markAllAlertsRead(@RequestParam(required = false) Integer elderId) {
+        elderId = resolveElderId(elderId);
         log.info("标记全部预警已读，elderId: {}", elderId);
         return healthService.markAllAlertsRead(elderId);
     }
@@ -182,6 +216,9 @@ public class HealthController {
      */
     @PostMapping("/alert/record")
     public Result<HealthVO> saveHealthWithAlert(@Valid @RequestBody HealthDTO healthDTO) {
+        if (healthDTO.getElderId() == null) {
+            healthDTO.setElderId(resolveElderId(null));
+        }
         log.info("保存健康记录（预警路径），elderId: {}", healthDTO.getElderId());
         return healthService.saveHealth(healthDTO);
     }

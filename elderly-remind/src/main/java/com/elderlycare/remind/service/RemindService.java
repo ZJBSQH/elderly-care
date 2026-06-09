@@ -54,9 +54,9 @@ public interface RemindService {
     Result<List<RemindTaskVO>> listTasks(Integer page, Integer pageSize);
 
     /**
-     * 获取当前用户当天的提醒任务
+     * 获取当天提醒任务（优先按 elderId 查，为空则按当前用户查）
      */
-    Result<List<RemindTaskVO>> getTodayTasks();
+    Result<List<RemindTaskVO>> getTodayTasks(Integer elderId);
 
     /**
      * 获取所有当天需要执行的任务（供调度器使用，不区分用户）

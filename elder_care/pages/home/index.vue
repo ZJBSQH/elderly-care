@@ -73,13 +73,24 @@
       </view>
     </view>
 
-    <!-- 紧急呼救 -->
-    <view class="sos-section">
-      <button class="sos-btn" @click="emergencyHelp">
-        <text class="sos-icon">🆘</text>
-        <text class="sos-text">紧急呼救</text>
-        <text class="sos-desc">长按或点击发送求助</text>
-      </button>
+    <!-- 快捷入口 -->
+    <view class="quick-actions">
+      <view class="quick-action" @click="goToAI">
+        <text class="qa-icon">💬</text>
+        <text class="qa-label">健康问答</text>
+      </view>
+      <view class="quick-action" @click="goToMedicine">
+        <text class="qa-icon">💊</text>
+        <text class="qa-label">用药管理</text>
+      </view>
+      <view class="quick-action" @click="goToHealth">
+        <text class="qa-icon">📊</text>
+        <text class="qa-label">健康数据</text>
+      </view>
+      <view class="quick-action sos-action" @click="emergencyHelp">
+        <text class="qa-icon">🆘</text>
+        <text class="qa-label">紧急求助</text>
+      </view>
     </view>
   </view>
 </template>
@@ -132,7 +143,8 @@ function formatTime(timeStr) {
 /** 加载今日用药 */
 async function loadTodayTasks() {
   try {
-    const tasks = await getTodayMedicine()
+    const elderId = userStore.elderId
+    const tasks = await getTodayMedicine({ elderId })
     todayTasks.value = Array.isArray(tasks) ? tasks : []
   } catch (e) {
     console.error('加载用药数据失败:', e)
@@ -166,6 +178,10 @@ async function loadNotices() {
     notices.value = []
     unreadCount.value = 0
   }
+}
+
+function goToAI() {
+  uni.navigateTo({ url: '/pages/ai/chat' })
 }
 
 function goToMedicine() {
@@ -442,38 +458,36 @@ onMounted(() => {
   line-height: 1.5;
 }
 
-// ========== 紧急呼救 ==========
-.sos-section {
+// ========== 快捷入口 ==========
+.quick-actions {
+  display: flex;
+  gap: 16rpx;
   margin-top: $elder-spacing-xl;
 }
 
-.sos-btn {
-  width: 100%;
-  height: 160rpx;
-  background: linear-gradient(135deg, #FF6B6B 0%, #FF3B3B 100%);
-  border-radius: 32rpx;
-  border: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8rpx 30rpx rgba(255, 107, 107, 0.4);
+.quick-action {
+  flex: 1;
+  background: $color-white;
+  border-radius: $elder-radius-lg;
+  padding: 28rpx 0;
+  text-align: center;
+  box-shadow: $elder-shadow;
+
+  &:active { background: #f8f9fb; }
 }
 
-.sos-icon {
-  font-size: 56rpx;
+.qa-icon { font-size: 44rpx; display: block; margin-bottom: 8rpx; }
+
+.qa-label {
+  font-size: 24rpx;
+  color: $color-text;
+  font-weight: 600;
 }
 
-.sos-text {
-  font-size: $elder-font-large;
-  font-weight: bold;
-  color: #fff;
-  margin-top: 4rpx;
-}
+.sos-action {
+  background: linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%);
+  border: 2rpx solid #ffcccc;
 
-.sos-desc {
-  font-size: $elder-font-small;
-  color: rgba(255, 255, 255, 0.8);
-  margin-top: 4rpx;
+  .qa-label { color: $color-danger; }
 }
 </style>

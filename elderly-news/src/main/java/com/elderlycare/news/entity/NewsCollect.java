@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 @TableName("news_collect")
 public class NewsCollect {
 
+    /** 收藏记录ID */
     @TableId(type = IdType.AUTO)
     private Integer id;
 

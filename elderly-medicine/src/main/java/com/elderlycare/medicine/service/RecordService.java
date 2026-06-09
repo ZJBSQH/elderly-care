@@ -1,6 +1,7 @@
 package com.elderlycare.medicine.service;
 
 import com.elderlycare.common.core.result.Result;
+import com.elderlycare.medicine.dto.RecordQuery;
 import com.elderlycare.medicine.vo.RecordVO;
 
 import java.util.List;
@@ -30,22 +31,17 @@ public interface RecordService {
     Result<List<RecordVO>> getTodayRecords(Integer elderId);
 
     /**
-     * 获取历史服药记录
-     *
-     * @param elderId 老人 ID
-     * @param page    页码
-     * @param size    每页大小
-     * @return 历史服药记录列表
+     * 获取历史服药记录（支持分页 + 日期/状态筛选）
      */
-    Result<List<RecordVO>> getHistoryRecords(Integer elderId, Integer page, Integer size);
+    Result<List<RecordVO>> getHistoryRecords(RecordQuery query);
 
     /**
      * 检查今日是否已服药
      *
      * @param taskId 用药计划 ID
-     * @return true-已服，false-未服
+     * @return { status: 1-已服, 0-未服 }
      */
-    Result<Boolean> checkRecord(Integer taskId);
+    Result<java.util.Map<String, Integer>> checkRecord(Integer taskId);
 
     /**
      * 标记漏服

@@ -16,6 +16,9 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @EnableDiscoveryClient
 @EnableFeignClients
 public class ElderlyNewsApplication {
+    /**
+     * Spring Boot应用入口
+     */
     public static void main(String[] args) {
         SpringApplication.run(ElderlyNewsApplication.class, args);
     }

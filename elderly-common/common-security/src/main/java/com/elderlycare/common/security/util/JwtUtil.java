@@ -26,9 +26,22 @@ public class JwtUtil {
     @Value("${jwt.expiration:86400000}")
     private Long expiration;
 
+    /**
+     * 缓存的签名密钥，避免每次调用都重新创建
+     */
+    private volatile SecretKey cachedSecretKey;
+
+    /** 获取签名密钥（双重检查锁，缓存复用） */
     private SecretKey getSigningKey() {
-        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
+        if (cachedSecretKey == null) {
+            synchronized (this) {
+                if (cachedSecretKey == null) {
+                    byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+                    cachedSecretKey = Keys.hmacShaKeyFor(keyBytes);
+                }
+            }
+        }
+        return cachedSecretKey;
     }
 
     /**
@@ -42,6 +55,7 @@ public class JwtUtil {
         return createToken(claims, phone);
     }
 
+    /** 使用指定的声明和主题创建 JWT token */
     private String createToken(Map<String, Object> claims, String subject) {
         Date now = new Date();
         Date expirationDate = new Date(now.getTime() + expiration);
@@ -78,6 +92,7 @@ public class JwtUtil {
         return getClaims(token);
     }
 
+    /** 解析 token 并返回其声明信息 */
     private Claims getClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
@@ -100,6 +115,7 @@ public class JwtUtil {
         }
     }
 
+    /** 判断 token 是否已过期（过期返回 true） */
     public boolean isTokenExpired(String token) {
         try {
             Claims claims = getClaims(token);

@@ -28,6 +28,8 @@ public enum NewsErrorCode implements ErrorCode {
     /** 收藏记录不存在 */
     COLLECT_NOT_EXIST(8005, "收藏记录不存在");
 
+    /** 错误码 */
     private final Integer code;
+    /** 错误信息 */
     private final String message;
 }

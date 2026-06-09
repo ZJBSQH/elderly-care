@@ -15,6 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public abstract class BaseSecurityConfig {
 
+    /** 子类必须实现，返回当前服务的 JWT 认证过滤器实例 */
     protected abstract JwtAuthenticationFilter jwtAuthenticationFilter();
 
     /**
@@ -24,6 +25,7 @@ public abstract class BaseSecurityConfig {
         return new String[]{"/auth/**", "/ws/**"};
     }
 
+    /** 配置 Spring Security 过滤器链：禁用 CSRF、设置无状态会话、启用 JWT 过滤器 */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -43,6 +45,7 @@ public abstract class BaseSecurityConfig {
         return http.build();
     }
 
+    /** 提供 BCrypt 密码编码器 */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

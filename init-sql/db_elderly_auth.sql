@@ -13,8 +13,7 @@ USE `db_elderly_auth`;
 -- ----------------------------
 -- Table: user (用户表)
 -- ----------------------------
-DROP TABLE IF EXISTS `user`;
-CREATE TABLE `user` (
+CREATE TABLE IF NOT EXISTS `user` (
   `id`          INT          NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
   `name`        VARCHAR(50)  NULL     DEFAULT NULL COMMENT '姓名',
   `sex`         VARCHAR(10)  NOT NULL COMMENT '性别',
@@ -25,6 +24,9 @@ CREATE TABLE `user` (
   `user_type`   TINYINT      NOT NULL DEFAULT 0  COMMENT '角色: 0-老人, 1-家属, 2-管理员',
   `status`      TINYINT      NOT NULL DEFAULT 1  COMMENT '状态: 1-正常, 0-禁用',
   `create_time` DATETIME     NULL     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` DATETIME     NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
-  UNIQUE INDEX `uk_phone` (`phone`) USING BTREE
+  UNIQUE INDEX `uk_phone` (`phone`) USING BTREE,
+  INDEX `idx_user_type` (`user_type`) USING BTREE,
+  INDEX `idx_status` (`status`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';

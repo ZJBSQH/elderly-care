@@ -17,6 +17,8 @@ public enum RemindErrorCode implements ErrorCode {
     TASK_NOT_EXIST(6002, "提醒任务不存在"),
     NOTIFICATION_NOT_EXIST(6003, "通知记录不存在");
 
+    /** 错误码 */
     private final Integer code;
+    /** 错误信息 */
     private final String message;
 }

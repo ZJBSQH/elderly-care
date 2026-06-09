@@ -3,6 +3,9 @@ package com.elderlycare.auth.dto;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+/**
+ * 更新个人信息请求参数
+ */
 @Data
 public class ProfileUpdateRequest {
 

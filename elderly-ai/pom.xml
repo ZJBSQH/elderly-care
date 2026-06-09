@@ -60,10 +60,22 @@
             <artifactId>langchain4j-spring-boot4-starter</artifactId>
         </dependency>
 
-        <!-- OpenAI 模型支持（如果你用 OpenAI） -->
+        <!-- 千问模型支持 -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-community-dashscope-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- Bean Validation（DTO 参数校验） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- Jedis 客户端（用于 Redis Stack RediSearch 向量检索） -->
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
         </dependency>
 
         <!-- 如果需要流式输出（Flux） -->

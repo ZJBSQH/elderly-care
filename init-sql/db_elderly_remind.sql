@@ -20,24 +20,23 @@ USE `db_elderly_remind`;
 -- ----------------------------
 -- Table: remind (提醒设置表)
 -- ----------------------------
-DROP TABLE IF EXISTS `remind`;
-CREATE TABLE `remind` (
+CREATE TABLE IF NOT EXISTS `remind` (
   `id`         INT          NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
   `user_id`    INT          NOT NULL COMMENT '关联用户 ID (软引用 db_elderly_auth.user.id)',
   `ringtone`   VARCHAR(255) NULL     DEFAULT NULL COMMENT '铃声',
   `volume`     TINYINT      UNSIGNED NULL DEFAULT 50 COMMENT '音量',
   `quiet_time` VARCHAR(50)  NULL     DEFAULT NULL COMMENT '勿扰时间段',
   `repeat_mode` VARCHAR(50) NULL     DEFAULT NULL COMMENT '重复模式',
+  `create_time` DATETIME    NULL     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` DATETIME    NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_user_id` (`user_id`) USING BTREE
-  -- 原外键 fk_remind_user 已移除 (跨库)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='提醒设置表';
 
 -- ----------------------------
 -- Table: remind_task (提醒任务表)
 -- ----------------------------
-DROP TABLE IF EXISTS `remind_task`;
-CREATE TABLE `remind_task` (
+CREATE TABLE IF NOT EXISTS `remind_task` (
   `id`          INT          NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
   `user_id`     INT          NOT NULL COMMENT '用户 ID (软引用 db_elderly_auth.user.id)',
   `elder_id`    INT          NOT NULL COMMENT '老人 ID (软引用 db_elderly_user.elder.id)',
@@ -66,8 +65,7 @@ CREATE TABLE `remind_task` (
 -- ----------------------------
 -- Table: notification (通知记录表)
 -- ----------------------------
-DROP TABLE IF EXISTS `notification`;
-CREATE TABLE `notification` (
+CREATE TABLE IF NOT EXISTS `notification` (
   `id`          INT          NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
   `task_id`     INT          NULL     DEFAULT NULL COMMENT '任务 ID',
   `user_id`     INT          NOT NULL COMMENT '用户 ID (软引用 db_elderly_auth.user.id)',

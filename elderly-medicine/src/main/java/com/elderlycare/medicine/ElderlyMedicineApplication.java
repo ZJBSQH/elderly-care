@@ -16,6 +16,10 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @EnableDiscoveryClient
 @EnableFeignClients
 public class ElderlyMedicineApplication {
+
+    /**
+     * 应用启动入口
+     */
     public static void main(String[] args) {
         SpringApplication.run(ElderlyMedicineApplication.class, args);
     }

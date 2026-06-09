@@ -77,6 +77,9 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { getTodayMedicine, takeMedicine, checkRecord, markMissed } from '../../api/medicine.js'
 import { useMedicineReminder } from '../../composables/useMedicineReminder.js'
+import { useUserStore } from '../../store/user.js'
+
+const userStore = useUserStore()
 
 // 当前日期
 const currentDate = computed(() => {
@@ -138,7 +141,8 @@ function formatTime(timeStr) {
 /** 加载今日任务和记录 */
 async function loadData() {
   try {
-    const result = await getTodayMedicine()
+    const elderId = userStore.elderId
+    const result = await getTodayMedicine({ elderId })
     tasks.value = Array.isArray(result) ? result : []
 
     // 为每个任务查记录
@@ -160,7 +164,7 @@ async function loadData() {
 async function handleTake(taskId) {
   try {
     uni.showLoading({ title: '记录中...', mask: true })
-    await takeMedicine(taskId)
+    await takeMedicine(taskId, userStore.elderId)
     recordMap.value[taskId] = 1
     uni.hideLoading()
     uni.showToast({ title: '已记录服药', icon: 'success', duration: 1500 })
@@ -174,7 +178,7 @@ async function handleTake(taskId) {
 async function handleMiss(taskId) {
   try {
     uni.showLoading({ title: '标记中...', mask: true })
-    await markMissed(taskId)
+    await markMissed(taskId, userStore.elderId)
     recordMap.value[taskId] = 0
     uni.hideLoading()
     uni.showToast({ title: '已标记漏服', icon: 'none', duration: 1500 })

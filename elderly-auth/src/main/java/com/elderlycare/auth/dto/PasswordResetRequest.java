@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
+/**
+ * 重置密码请求参数
+ */
 @Data
 public class PasswordResetRequest {
 

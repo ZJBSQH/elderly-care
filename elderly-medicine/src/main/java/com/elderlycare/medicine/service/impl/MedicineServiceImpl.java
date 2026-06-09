@@ -30,10 +30,15 @@ public class MedicineServiceImpl implements MedicineService {
 
     private final MedicineMapper medicineMapper;
 
+    /** 新增用药计划 */
     @Override
     public Result<Void> add(MedicineAddRequest request) {
         Medicine medicine = new Medicine();
         BeanUtil.copyNonNullProperties(request, medicine);
+        // 提醒时间默认 08:00
+        if (medicine.getRemindTime() == null) {
+            medicine.setRemindTime(java.time.LocalTime.of(8, 0));
+        }
         medicine.setCreateTime(LocalDateTime.now());
         medicine.setUpdateTime(LocalDateTime.now());
         medicine.setStatus(1);
@@ -43,6 +48,7 @@ public class MedicineServiceImpl implements MedicineService {
         return Result.success();
     }
 
+    /** 更新用药计划 */
     @Override
     public Result<Void> update(MedicineUpdateRequest request) {
         Medicine medicine = medicineMapper.selectById(request.getId());
@@ -56,6 +62,7 @@ public class MedicineServiceImpl implements MedicineService {
         return Result.success();
     }
 
+    /** 删除用药计划 */
     @Override
     public Result<Void> delete(Integer id) {
         Medicine medicine = medicineMapper.selectById(id);
@@ -67,6 +74,7 @@ public class MedicineServiceImpl implements MedicineService {
         return Result.success();
     }
 
+    /** 根据老人 ID 查询用药计划列表 */
     @Override
     public Result<List<MedicineVO>> selectByElderId(Integer elderId) {
         List<Medicine> medicineList = medicineMapper.selectByElderId(elderId);
@@ -76,6 +84,7 @@ public class MedicineServiceImpl implements MedicineService {
         return Result.success(voList);
     }
 
+    /** 查看用药计划详情 */
     @Override
     public Result<List<MedicineVO>> viewPlan(Integer elderId) {
         return selectByElderId(elderId);
@@ -89,18 +98,7 @@ public class MedicineServiceImpl implements MedicineService {
      */
     private MedicineVO convertToVO(Medicine medicine) {
         MedicineVO vo = new MedicineVO();
-        vo.setId(medicine.getId());
-        vo.setElderId(medicine.getElderId());
-        vo.setMedicineName(medicine.getMedicineName());
-        vo.setDosage(medicine.getDosage());
-        vo.setRemindTime(medicine.getRemindTime());
-        vo.setFrequency(medicine.getFrequency());
-        vo.setStartDate(medicine.getStartDate());
-        vo.setEndDate(medicine.getEndDate());
-        vo.setStatus(medicine.getStatus());
-        vo.setCreateTime(medicine.getCreateTime());
-        vo.setUpdateTime(medicine.getUpdateTime());
-        vo.setIsPublic(medicine.getIsPublic());
+        BeanUtil.copyProperties(medicine, vo);
         return vo;
     }
 }

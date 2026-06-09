@@ -14,13 +14,18 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RemindSettingUpdateRequest {
 
+    /** 用户 ID */
     private Integer userId;
 
+    /** 铃声 */
     private String ringtone;
 
+    /** 音量 */
     private Integer volume;
 
+    /** 重复模式 */
     private String repeatMode;
 
+    /** 免打扰时间段 */
     private String quietTime;
 }

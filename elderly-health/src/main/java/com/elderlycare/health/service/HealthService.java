@@ -2,10 +2,10 @@ package com.elderlycare.health.service;
 
 import com.elderlycare.common.core.result.Result;
 import com.elderlycare.health.dto.HealthDTO;
+import com.elderlycare.health.dto.HealthQuery;
 import com.elderlycare.health.vo.AlertVO;
 import com.elderlycare.health.vo.HealthVO;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -33,14 +33,12 @@ public interface HealthService {
     Result<List<HealthVO>> getTodayRecords(Integer elderId);
 
     /**
-     * 获取历史健康记录
+     * 获取历史健康记录（分页/不分页由 query.pageNum 控制，传 0 不分页）
      *
-     * @param elderId 老人ID
-     * @param start   开始时间
-     * @param end     结束时间
-     * @return 历史健康记录列表
+     * @param query 查询参数
+     * @return 健康记录列表
      */
-    Result<List<HealthVO>> getHistoryRecords(Integer elderId, LocalDateTime start, LocalDateTime end);
+    Result<List<HealthVO>> getHistoryRecords(HealthQuery query);
 
     /**
      * 获取最新一条健康记录

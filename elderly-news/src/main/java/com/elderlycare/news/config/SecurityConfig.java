@@ -12,19 +12,29 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SecurityConfig extends BaseSecurityConfig {
 
+    /** JWT认证过滤器 */
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    /** 构造器注入JWT过滤器 */
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
+    /**
+     * 提供JWT认证过滤器
+     */
     @Override
     protected JwtAuthenticationFilter jwtAuthenticationFilter() {
         return jwtAuthenticationFilter;
     }
 
+    /**
+     * 放行路径（推荐文章/热门文章/搜索/列表/详情无需登录）
+     */
     @Override
     protected String[] permitAllPaths() {
-        return new String[]{"/health-knowledge/recommended", "/health-knowledge/popular", "/health-knowledge/search", "/health-knowledge/articles", "/health-knowledge/article/*"};
+        return new String[]{
+            "/health-knowledge/**",
+        };
     }
 }

@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 @TableName("news_like")
 public class NewsLike {
 
+    /** 点赞记录ID */
     @TableId(type = IdType.AUTO)
     private Integer id;
 

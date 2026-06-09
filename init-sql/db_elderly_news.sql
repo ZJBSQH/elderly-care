@@ -14,6 +14,7 @@ CREATE DATABASE IF NOT EXISTS `db_elderly_news`
   COLLATE utf8mb4_unicode_ci;
 
 USE `db_elderly_news`;
+SET FOREIGN_KEY_CHECKS = 0;
 
 -- ----------------------------
 -- Table: news (资讯表)

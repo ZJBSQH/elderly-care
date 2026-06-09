@@ -1,6 +1,7 @@
 package com.elderlycare.remind.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.elderlycare.common.core.exception.BusinessException;
 import com.elderlycare.common.core.result.Result;
@@ -20,11 +21,13 @@ import com.elderlycare.remind.vo.RemindTaskVO;
 import com.elderlycare.remind.vo.RemindVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
+import com.elderlycare.common.core.util.BeanUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,15 +43,24 @@ import static com.elderlycare.remind.dto.RemindErrorCode.*;
 @RequiredArgsConstructor
 public class RemindServiceImpl implements RemindService {
 
+    /** 默认音量 */
     private static final Integer DEFAULT_VOLUME = 50;
+    /** 默认需要语音播报 */
     private static final Integer DEFAULT_NEED_VOICE = 1;
+    /** 默认需要弹窗提醒 */
     private static final Integer DEFAULT_NEED_POPUP = 1;
+    /** 默认状态（启用） */
     private static final Integer DEFAULT_STATUS = 1;
+    /** 默认读取状态（未读） */
     private static final Integer DEFAULT_READ_STATUS = 0;
 
+    /** 提醒设置 Mapper */
     private final RemindMapper remindMapper;
+    /** 提醒任务 Mapper */
     private final RemindTaskMapper remindTaskMapper;
+    /** 通知记录 Mapper */
     private final NotificationMapper notificationMapper;
+    /** 安全工具类 */
     private final SecurityUtil securityUtil;
 
     /**
@@ -78,7 +90,7 @@ public class RemindServiceImpl implements RemindService {
         }
 
         RemindVO vo = new RemindVO();
-        BeanUtils.copyProperties(remind, vo);
+        BeanUtil.copyProperties(remind, vo);
         return Result.success(vo);
     }
 
@@ -94,22 +106,11 @@ public class RemindServiceImpl implements RemindService {
             throw new BusinessException(REMIND_NOT_EXIST);
         }
 
-        if (request.getRingtone() != null) {
-            remind.setRingtone(request.getRingtone());
-        }
-        if (request.getVolume() != null) {
-            remind.setVolume(request.getVolume());
-        }
-        if (request.getRepeatMode() != null) {
-            remind.setRepeatMode(request.getRepeatMode());
-        }
-        if (request.getQuietTime() != null) {
-            remind.setQuietTime(request.getQuietTime());
-        }
+        BeanUtil.copyNonNullProperties(request, remind);
         remindMapper.updateById(remind);
 
         RemindVO vo = new RemindVO();
-        BeanUtils.copyProperties(remind, vo);
+        BeanUtil.copyProperties(remind, vo);
         return Result.success(vo);
     }
 
@@ -124,8 +125,8 @@ public class RemindServiceImpl implements RemindService {
         task.setMedicineId(request.getMedicineId());
         task.setTitle(request.getTitle());
         task.setContent(request.getContent());
-        task.setRemindTime(request.getRemindTime());
-        task.setRemindDate(request.getRemindDate());
+        task.setRemindTime(request.getRemindTime() != null ? request.getRemindTime() : LocalTime.of(8, 0));
+        task.setRemindDate(request.getRemindDate() != null ? request.getRemindDate() : LocalDate.now());
         task.setRemindType(request.getRemindType());
         task.setNeedVoice(request.getNeedVoice() != null ? request.getNeedVoice() : DEFAULT_NEED_VOICE);
         task.setNeedPopup(request.getNeedPopup() != null ? request.getNeedPopup() : DEFAULT_NEED_POPUP);
@@ -140,7 +141,7 @@ public class RemindServiceImpl implements RemindService {
         log.info("用户 {} 创建提醒任务成功, 任务 ID: {}", userId, task.getId());
 
         RemindTaskVO vo = new RemindTaskVO();
-        BeanUtils.copyProperties(task, vo);
+        BeanUtil.copyProperties(task, vo);
         return Result.success(vo);
     }
 
@@ -157,45 +158,13 @@ public class RemindServiceImpl implements RemindService {
             throw new BusinessException(403, "无权修改他人的提醒任务");
         }
 
-        if (request.getMedicineId() != null) {
-            task.setMedicineId(request.getMedicineId());
-        }
-        if (request.getTitle() != null) {
-            task.setTitle(request.getTitle());
-        }
-        if (request.getContent() != null) {
-            task.setContent(request.getContent());
-        }
-        if (request.getRemindTime() != null) {
-            task.setRemindTime(request.getRemindTime());
-        }
-        if (request.getRemindDate() != null) {
-            task.setRemindDate(request.getRemindDate());
-        }
-        if (request.getRemindType() != null) {
-            task.setRemindType(request.getRemindType());
-        }
-        if (request.getNeedVoice() != null) {
-            task.setNeedVoice(request.getNeedVoice());
-        }
-        if (request.getNeedPopup() != null) {
-            task.setNeedPopup(request.getNeedPopup());
-        }
-        if (request.getVoiceText() != null) {
-            task.setVoiceText(request.getVoiceText());
-        }
-        if (request.getRepeatCycle() != null) {
-            task.setRepeatCycle(request.getRepeatCycle());
-        }
-        if (request.getEndDate() != null) {
-            task.setEndDate(request.getEndDate());
-        }
+        BeanUtil.copyNonNullProperties(request, task);
         task.setUpdateTime(LocalDateTime.now());
         remindTaskMapper.updateById(task);
         log.info("用户 {} 更新提醒任务成功, 任务 ID: {}", userId, task.getId());
 
         RemindTaskVO vo = new RemindTaskVO();
-        BeanUtils.copyProperties(task, vo);
+        BeanUtil.copyProperties(task, vo);
         return Result.success(vo);
     }
 
@@ -230,7 +199,7 @@ public class RemindServiceImpl implements RemindService {
         }
 
         RemindTaskVO vo = new RemindTaskVO();
-        BeanUtils.copyProperties(task, vo);
+        BeanUtil.copyProperties(task, vo);
         return Result.success(vo);
     }
 
@@ -246,7 +215,7 @@ public class RemindServiceImpl implements RemindService {
 
         List<RemindTaskVO> voList = resultPage.getRecords().stream().map(task -> {
             RemindTaskVO vo = new RemindTaskVO();
-            BeanUtils.copyProperties(task, vo);
+            BeanUtil.copyProperties(task, vo);
             return vo;
         }).collect(Collectors.toList());
 
@@ -254,18 +223,20 @@ public class RemindServiceImpl implements RemindService {
     }
 
     @Override
-    public Result<List<RemindTaskVO>> getTodayTasks() {
-        Integer userId = getCurrentUserId();
-        // 使用 selectTodayTasks + 按 userId 过滤
-        List<RemindTask> allTodayTasks = remindTaskMapper.selectTodayTasks();
-        List<RemindTaskVO> voList = allTodayTasks.stream()
-                .filter(task -> task.getUserId().equals(userId))
+    public Result<List<RemindTaskVO>> getTodayTasks(Integer elderId) {
+        List<RemindTask> todayTasks;
+        if (elderId != null) {
+            todayTasks = remindTaskMapper.selectTodayTasksByElderId(elderId);
+        } else {
+            Integer userId = getCurrentUserId();
+            todayTasks = remindTaskMapper.selectTodayTasksByUserId(userId);
+        }
+        List<RemindTaskVO> voList = todayTasks.stream()
                 .map(task -> {
                     RemindTaskVO vo = new RemindTaskVO();
-                    BeanUtils.copyProperties(task, vo);
+                    BeanUtil.copyProperties(task, vo);
                     return vo;
                 }).collect(Collectors.toList());
-
         return Result.success(voList);
     }
 
@@ -287,7 +258,7 @@ public class RemindServiceImpl implements RemindService {
 
         List<NotificationVO> voList = resultPage.getRecords().stream().map(notification -> {
             NotificationVO vo = new NotificationVO();
-            BeanUtils.copyProperties(notification, vo);
+            BeanUtil.copyProperties(notification, vo);
             return vo;
         }).collect(Collectors.toList());
 
@@ -321,17 +292,12 @@ public class RemindServiceImpl implements RemindService {
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> markAllAsRead() {
         Integer userId = getCurrentUserId();
-        LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Notification::getUserId, userId)
-                .eq(Notification::getReadStatus, 0);
-        List<Notification> unreadList = notificationMapper.selectList(wrapper);
-        LocalDateTime now = LocalDateTime.now();
-        for (Notification notification : unreadList) {
-            notification.setReadStatus(1);
-            notification.setReadTime(now);
-            notificationMapper.updateById(notification);
-        }
-        log.info("用户 {} 全部通知已标记为已读，共 {} 条", userId, unreadList.size());
+        notificationMapper.update(null, new LambdaUpdateWrapper<Notification>()
+                .eq(Notification::getUserId, userId)
+                .eq(Notification::getReadStatus, 0)
+                .set(Notification::getReadStatus, 1)
+                .set(Notification::getReadTime, LocalDateTime.now()));
+        log.info("用户 {} 全部通知已标记为已读", userId);
         return Result.success();
     }
 
@@ -343,7 +309,7 @@ public class RemindServiceImpl implements RemindService {
         List<RemindTask> tasks = remindTaskMapper.selectList(wrapper);
         List<RemindTaskVO> voList = tasks.stream().map(task -> {
             RemindTaskVO vo = new RemindTaskVO();
-            BeanUtils.copyProperties(task, vo);
+            BeanUtil.copyProperties(task, vo);
             return vo;
         }).collect(Collectors.toList());
         return Result.success(voList);

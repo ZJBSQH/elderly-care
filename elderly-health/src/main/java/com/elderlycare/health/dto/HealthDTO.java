@@ -2,7 +2,6 @@ package com.elderlycare.health.dto;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,9 +17,8 @@ import lombok.NoArgsConstructor;
 public class HealthDTO {
 
     /**
-     * 老人ID
+     * 老人ID（Controller 层自动从安全上下文填充，允许为空）
      */
-    @NotNull(message = "老人ID不能为空")
     private Integer elderId;
 
     /**

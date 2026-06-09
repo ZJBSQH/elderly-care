@@ -31,12 +31,12 @@
       </view>
 
       <!-- 提醒时间 -->
-      <view class="form-item">
-        <text class="form-label">提醒时间</text>
+      <view class="form-item required">
+        <text class="form-label">提醒时间 <text class="star">*</text></text>
         <picker mode="time" :value="form.remindTime" @change="onTimeChange">
           <view class="picker-value">
             <text :class="{ placeholder: !form.remindTime }">
-              {{ form.remindTime || '选择时间（可选）' }}
+              {{ form.remindTime || '选择时间' }}
             </text>
             <text class="picker-arrow">⏰</text>
           </view>
@@ -102,6 +102,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useUserStore } from '../../store/user.js'
 import { addMedicine, updateMedicine, deleteMedicine, getMedicineList } from '../../api/medicine.js'
+import { createRemindTask } from '../../api/remind.js'
 
 const userStore = useUserStore()
 
@@ -178,18 +179,25 @@ async function handleSubmit() {
   if (form.startDate > form.endDate) {
     return uni.showToast({ title: '结束日期不能早于开始日期', icon: 'none', duration: 2000 })
   }
+  if (!form.remindTime) {
+    return uni.showToast({ title: '请选择提醒时间', icon: 'none', duration: 2000 })
+  }
 
   const elderId = userStore.elderId
   if (!elderId) {
     return uni.showToast({ title: '无法获取用户信息', icon: 'none', duration: 2000 })
   }
 
+  // 频次映射为 repeatCycle: 每日→1, 每周→2, 每月→3
+  const repeatCycleMap = { '每日一次': 1, '每日二次': 1, '每日三次': 1, '每周一次': 2, '每月一次': 3 }
+  const repeatCycle = repeatCycleMap[form.frequency] || 0
+
   loading.value = true
   try {
     const payload = {
       medicineName: form.medicineName.trim(),
       dosage: form.dosage.trim(),
-      remindTime: form.remindTime || undefined,
+      remindTime: form.remindTime,
       frequency: form.frequency,
       startDate: form.startDate,
       endDate: form.endDate,
@@ -202,6 +210,17 @@ async function handleSubmit() {
       uni.showToast({ title: '修改成功', icon: 'success', duration: 1500 })
     } else {
       await addMedicine(payload)
+      // 同步创建 remind_task，使今日用药页面能展示
+      await createRemindTask({
+        elderId,
+        title: form.medicineName.trim(),
+        content: form.dosage.trim() || form.medicineName.trim(),
+        remindTime: form.remindTime,
+        remindDate: form.startDate,
+        remindType: 1,
+        repeatCycle,
+        endDate: form.endDate || undefined
+      })
       uni.showToast({ title: '添加成功', icon: 'success', duration: 1500 })
     }
 

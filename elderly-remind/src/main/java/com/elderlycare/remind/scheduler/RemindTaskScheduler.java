@@ -1,5 +1,6 @@
 package com.elderlycare.remind.scheduler;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.elderlycare.remind.entity.Notification;
 import com.elderlycare.remind.entity.RemindTask;
 import com.elderlycare.remind.mapper.NotificationMapper;
@@ -25,7 +26,9 @@ import java.time.LocalTime;
 @RequiredArgsConstructor
 public class RemindTaskScheduler {
 
+    /** 提醒服务 */
     private final RemindService remindService;
+    /** 通知记录 Mapper */
     private final NotificationMapper notificationMapper;
 
     /**
@@ -70,6 +73,17 @@ public class RemindTaskScheduler {
      */
     private void triggerTask(RemindTask task, LocalDate today) {
         try {
+            // 防止重复通知：查询同一任务在最近 1 分钟内是否已发送过通知
+            LocalDateTime oneMinuteAgo = LocalDateTime.now().minusMinutes(1);
+            LambdaQueryWrapper<Notification> duplicateWrapper = new LambdaQueryWrapper<>();
+            duplicateWrapper.eq(Notification::getTaskId, task.getId())
+                    .ge(Notification::getSendTime, oneMinuteAgo);
+            Long duplicateCount = notificationMapper.selectCount(duplicateWrapper);
+            if (duplicateCount != null && duplicateCount > 0) {
+                log.info("任务 ID: {} 在最近 1 分钟内已有通知记录，跳过重复推送", task.getId());
+                return;
+            }
+
             // 构建通知记录
             Notification notification = new Notification();
             notification.setTaskId(task.getId());

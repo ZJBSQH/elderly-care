@@ -24,7 +24,16 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class NewsController {
 
+    /** 资讯文章服务 */
     private final NewsService newsService;
+
+    /**
+     * 获取文章列表（别名，等同 /articles 无分类查询）
+     */
+    @GetMapping("/list")
+    public Result<List<HealthKnowledgeVO>> listArticles() {
+        return newsService.getRecommendedArticles();
+    }
 
     /**
      * 发布文章
@@ -148,5 +157,19 @@ public class NewsController {
     @GetMapping("/collect/check")
     public Result<Boolean> checkIfCollected(@RequestParam Integer newsId) {
         return newsService.checkIfCollected(newsId);
+    }
+
+    /**
+     * 获取用于 RAG 知识库同步的文章列表（含正文全文）
+     * <p>
+     * 供 elderly-ai 服务通过 Feign 调用，返回已上架文章的完整内容。
+     *
+     * @param category 分类过滤（可选）
+     * @return 文章完整数据列表（含 title、content、category、summary）
+     */
+    @GetMapping("/articles/sync")
+    public Result<List<Map<String, Object>>> getArticlesForSync(
+            @RequestParam(required = false) String category) {
+        return newsService.getArticlesForSync(category);
     }
 }

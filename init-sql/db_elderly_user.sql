@@ -15,8 +15,7 @@ USE `db_elderly_user`;
 -- ----------------------------
 -- Table: elder (老人信息表)
 -- ----------------------------
-DROP TABLE IF EXISTS `elder`;
-CREATE TABLE `elder` (
+CREATE TABLE IF NOT EXISTS `elder` (
   `id`                INT          NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
   `user_id`           INT          NOT NULL COMMENT '关联用户 ID (软引用 db_elderly_auth.user.id)',
   `medical_history`   TEXT         NULL     COMMENT '既往病史',
@@ -24,16 +23,16 @@ CREATE TABLE `elder` (
   `emergency_contact` VARCHAR(100) NULL     DEFAULT NULL COMMENT '紧急联系人电话',
   `health_file`       VARCHAR(255) NULL     DEFAULT NULL COMMENT '健康档案文件路径',
   `qr_code_token`     VARCHAR(255) NULL     DEFAULT NULL COMMENT '老人专属二维码',
+  `create_time`       DATETIME     NULL     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time`       DATETIME     NULL     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_user_id` (`user_id`) USING BTREE COMMENT '确保一个用户只有一个健康档案'
-  -- 原外键 fk_elder_user 已移除 (跨库)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='老人信息表';
 
 -- ----------------------------
 -- Table: family (家属绑定表)
 -- ----------------------------
-DROP TABLE IF EXISTS `family`;
-CREATE TABLE `family` (
+CREATE TABLE IF NOT EXISTS `family` (
   `id`             INT         NOT NULL AUTO_INCREMENT COMMENT '主键 ID',
   `family_user_id` INT         NOT NULL COMMENT '家属用户 ID (软引用 db_elderly_auth.user.id)',
   `elder_id`       INT         NOT NULL COMMENT '老人档案 ID',

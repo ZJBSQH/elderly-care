@@ -36,6 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/ws/"
     };
 
+    /** 从请求中解析 JWT token，验证并设置 Spring Security 认证上下文 */
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -81,6 +82,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /** 判断请求路径是否为公共端点，无需认证即可访问 */
     private boolean isPublicPath(String uri) {
 
         //查找是否符合公共端点
@@ -94,6 +96,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     }
 
+    /** 从请求头 Authorization 中提取 Bearer Token */
     private String getTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {

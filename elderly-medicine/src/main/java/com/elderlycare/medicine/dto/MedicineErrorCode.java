@@ -18,6 +18,8 @@ public enum MedicineErrorCode implements ErrorCode {
      */
     MEDICINE_NOT_EXIST(5001, "用药计划不存在");
 
+    /** 错误码 */
     private final Integer code;
+    /** 错误信息 */
     private final String message;
 }

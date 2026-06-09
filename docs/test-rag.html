@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG 知识库测试工具</title>
+<style>
+  :root {
+    --primary: #5B8FF9;
+    --primary-dark: #4579e0;
+    --success: #52c41a;
+    --danger: #ff4d4f;
+    --bg: #f5f7fa;
+    --card-bg: #fff;
+    --text: #333;
+    --text-secondary: #888;
+    --border: #e8e8e8;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* ====== 头部 ====== */
+  .header {
+    background: linear-gradient(135deg, #5B8FF9 0%, #36cfc9 100%);
+    border-radius: var(--radius);
+    padding: 32px 36px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .header-icon { font-size: 48px; }
+  .header-title { font-size: 26px; font-weight: 700; }
+  .header-desc { font-size: 14px; opacity: 0.8; margin-top: 6px; }
+  .header-config {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  .header-config input {
+    width: 220px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: none;
+    font-size: 13px;
+    outline: none;
+  }
+
+  /* ====== 卡片 ====== */
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 17px;
+    font-weight: 600;
+  }
+  .card-header .step-badge {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700;
+  }
+  .card-body { padding: 24px 28px; }
+
+  /* ====== 步骤1: 知识库管理 ====== */
+  .kb-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border);
+  }
+  .kb-tab {
+    padding: 10px 24px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 14px;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+  }
+  .kb-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 600;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(91,143,249,0.1);
+  }
+  .form-group textarea {
+    min-height: 160px;
+    resize: vertical;
+    line-height: 1.7;
+  }
+  .form-row {
+    display: flex;
+    gap: 12px;
+  }
+  .form-row .form-group { flex: 1; }
+
+  .btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover:not(:disabled) { background: #45a614; }
+  .btn-outline { background: #fff; color: var(--primary); border: 1px solid var(--primary); }
+  .btn-outline:hover:not(:disabled) { background: rgba(91,143,249,0.05); }
+  .btn-sm { padding: 6px 16px; font-size: 13px; }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+
+  /* 预设文档卡片 */
+  .preset-docs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .preset-doc {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .preset-doc:hover { border-color: var(--primary); background: #f7fcff; }
+  .preset-doc.selected { border-color: var(--primary); background: rgba(91,143,249,0.06); }
+  .preset-doc .doc-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .preset-doc .doc-meta { font-size: 12px; color: var(--text-secondary); display: flex; gap: 10px; }
+  .preset-doc .doc-check {
+    position: absolute; top: 10px; right: 12px;
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--border); font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .preset-doc.selected .doc-check {
+    background: var(--primary); border-color: var(--primary); color: #fff;
+  }
+
+  /* ====== 步骤2: RAG 问答 ====== */
+  .chat-panel {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    height: 450px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .chat-msg {
+    display: flex;
+    gap: 12px;
+    max-width: 85%;
+    animation: fadeIn 0.3s ease;
+  }
+  .chat-msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .chat-msg.ai { align-self: flex-start; }
+  .chat-msg .msg-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .chat-msg.user .msg-avatar { background: #e6f7ff; }
+  .chat-msg.ai .msg-avatar { background: #f0f5ff; }
+  .chat-msg .msg-bubble {
+    padding: 12px 18px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    word-break: break-word;
+  }
+  .chat-msg.user .msg-bubble {
+    background: linear-gradient(135deg, var(--primary), #36cfc9);
+    color: #fff;
+    border-top-right-radius: 4px;
+  }
+  .chat-msg.ai .msg-bubble {
+    background: #f5f7fa;
+    border-top-left-radius: 4px;
+  }
+  .chat-msg .msg-source {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    padding: 4px 10px;
+    background: #fffbe6;
+    border-radius: 4px;
+    border-left: 3px solid #faad14;
+  }
+  .chat-input-row {
+    display: flex;
+    gap: 10px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    background: #fafafa;
+  }
+  .chat-input-row input {
+    flex: 1;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    font-size: 14px;
+    outline: none;
+  }
+  .chat-input-row input:focus { border-color: var(--primary); }
+  .chat-input-row .send-btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .chat-input-row .send-btn:disabled { opacity: 0.5; }
+
+  .mode-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+  .mode-toggle label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+  .mode-chip {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #fff;
+    transition: all 0.2s;
+  }
+  .mode-chip.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+
+  /* ====== 状态提示 ====== */
+  .toast {
+    position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    animation: slideDown 0.3s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  }
+  .toast.success { background: #f6ffed; color: #389e0d; border: 1px solid #b7eb8f; }
+  .toast.error { background: #fff2f0; color: #cf1322; border: 1px solid #ffccc7; }
+  .toast.info { background: #e6f7ff; color: #096dd9; border: 1px solid #91d5ff; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+  }
+  .empty-state .empty-icon { font-size: 48px; display: block; margin-bottom: 12px; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideDown { from { opacity: 0; transform: translateX(-50%) translateY(-12px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- ====== 头部 ====== -->
+  <div class="header">
+    <span class="header-icon">🧪</span>
+    <div>
+      <div class="header-title">RAG 增强检索生成 · 测试工具</div>
+      <div class="header-desc">测试 elderly-ai 模块的知识库管理和增强问答功能</div>
+    </div>
+    <div class="header-config">
+      <span>🔗 Gateway</span>
+      <input id="baseUrl" type="text" value="http://localhost:8090" placeholder="http://localhost:8090">
+    </div>
+  </div>
+
+  <!-- ====== 步骤1: 知识库管理 ====== -->
+  <div class="card">
+    <div class="card-header">
+      <span class="step-badge">1</span>
+      <span>知识库管理 — 上传医学文档到向量库</span>
+    </div>
+    <div class="card-body">
+      <div class="kb-tabs">
+        <button class="kb-tab active" onclick="switchKbTab('preset')">📦 预设文档快速灌入</button>
+        <button class="kb-tab" onclick="switchKbTab('custom')">✏️ 自定义文档上传</button>
+        <button class="kb-tab" onclick="switchKbTab('sync')">🔄 从资讯模块同步</button>
+      </div>
+
+      <!-- 预设文档 -->
+      <div id="tab-preset">
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">
+          勾选需要导入的医学知识文档，点击"批量导入选中文档"即可写入 Redis 向量库。
+          导入后可在下方步骤2中测试 RAG 增强问答效果。
+        </p>
+        <div class="preset-docs" id="presetDocs"></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="batchImport()" id="btnBatchImport">
+            🚀 批量导入选中文档
+          </button>
+          <button class="btn btn-outline" onclick="selectAll()">全选</button>
+          <button class="btn btn-outline" onclick="deselectAll()">取消全选</button>
+          <span id="importResult" style="font-size:13px;margin-left:10px;line-height:36px"></span>
+        </div>
+      </div>
+
+      <!-- 自定义上传 -->
+      <div id="tab-custom" style="display:none">
+        <div class="form-row">
+          <div class="form-group">
+            <label>文档标题 *</label>
+            <input id="docTitle" type="text" placeholder="例如：布洛芬说明书">
+          </div>
+          <div class="form-group">
+            <label>分类 *</label>
+            <select id="docCategory">
+              <option value="MEDICINE">MEDICINE — 药品知识</option>
+              <option value="HEALTH">HEALTH — 健康养生</option>
+              <option value="NURSING">NURSING — 护理知识</option>
+              <option value="SAFETY">SAFETY — 用药安全</option>
+              <option value="FAQ">FAQ — 常见问答</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>文档正文 *</label>
+          <textarea id="docContent" placeholder="输入医学知识文档的完整正文...&#10;&#10;例如：布洛芬是一种非甾体抗炎药(NSAID)，用于缓解轻度至中度疼痛，如头痛、牙痛、肌肉痛。也可用于退烧..."></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-success" onclick="uploadDocument()" id="btnUpload">
+            📄 上传文档
+          </button>
+          <span id="uploadResult" style="font-size:13px;margin-left:10px;line-height:36px"></span>
+        </div>
+      </div>
+
+      <!-- 从资讯同步 -->
+      <div id="tab-sync" style="display:none">
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">
+          一键拉取<strong>资讯模块</strong>中所有已上架的健康知识文章，
+          经切分、嵌入后写入 Redis 向量库。已同步的文章会自动跳过（去重）。
+        </p>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>分类过滤（可选，不选则同步全部）</label>
+            <select id="syncCategory">
+              <option value="">全部文章</option>
+              <option value="MEDICINE">MEDICINE — 药品知识</option>
+              <option value="HEALTH">HEALTH — 健康养生</option>
+              <option value="NURSING">NURSING — 护理知识</option>
+              <option value="SAFETY">SAFETY — 用药安全</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-success" onclick="syncFromNews()" id="btnSync">
+            🔄 开始同步
+          </button>
+          <span id="syncResult" style="font-size:13px;margin-left:10px;line-height:36px"></span>
+        </div>
+
+        <div id="syncStats" style="display:none;margin-top:16px;padding:16px;background:#f6ffed;border-radius:8px;border:1px solid #b7eb8f">
+          <div style="display:flex;gap:24px;font-size:14px">
+            <div><span style="color:var(--text-secondary)">资讯文章总数：</span><strong id="statTotal">0</strong></div>
+            <div><span style="color:var(--text-secondary)">新入库：</span><strong style="color:var(--success)" id="statSynced">0</strong></div>
+            <div><span style="color:var(--text-secondary)">已存在跳过：</span><strong style="color:#faad14" id="statSkipped">0</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 步骤2: RAG 问答测试 ====== -->
+  <div class="card">
+    <div class="card-header">
+      <span class="step-badge">2</span>
+      <span>RAG 增强问答 — 基于知识库 + 个人上下文回答</span>
+    </div>
+    <div class="card-body">
+      <!-- 模式切换 -->
+      <div class="mode-toggle">
+        <label>问答模式：</label>
+        <span class="mode-chip active" data-mode="health-knowledge" onclick="switchMode('health-knowledge', this)">
+          🏥 健康知识问答
+        </span>
+        <span class="mode-chip" data-mode="ask" onclick="switchMode('ask', this)">
+          👤 个性化 RAG 问答
+        </span>
+        <span class="mode-chip" data-mode="medicine" onclick="switchMode('medicine', this)">
+          💊 普通 AI 问答（对照组）
+        </span>
+      </div>
+
+      <!-- Token 输入（个性化模式用） -->
+      <div id="tokenRow" style="display:none;margin-bottom:14px">
+        <label style="font-size:13px;font-weight:600;color:var(--text-secondary)">JWT Token（从登录接口获取）</label>
+        <div style="display:flex;gap:10px;margin-top:6px">
+          <input id="jwtToken" type="text" placeholder="Bearer eyJhbGciOi..." style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none">
+        </div>
+      </div>
+
+      <!-- 聊天面板 -->
+      <div class="chat-panel" id="chatPanel">
+        <div class="chat-messages" id="chatMessages">
+          <div class="empty-state">
+            <span class="empty-icon">💬</span>
+            <p>在下方输入问题，AI 将从知识库检索相关知识后生成回答</p>
+            <p style="font-size:12px;margin-top:4px;color:#bbb">提示：先完成步骤1导入文档，否则问答会降级为纯大模型回答</p>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input id="questionInput" type="text" placeholder="输入医学/用药问题…" maxlength="500"
+                 onkeydown="if(event.key==='Enter')sendQuestion()">
+          <button class="send-btn" onclick="sendQuestion()" id="btnSend">➤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast 容器 -->
+<div id="toastContainer"></div>
+
+<script>
+// ==================== 全局状态 ====================
+const BASE_URL = () => document.getElementById('baseUrl').value.replace(/\/+$/, '');
+let currentMode = 'health-knowledge';  // health-knowledge | ask | medicine
+let selectedDocs = new Set();
+
+// ==================== 预设文档 ====================
+const PRESET_DOCS = [
+  {
+    id: 'doc1',
+    title: '布洛芬说明书',
+    category: 'MEDICINE',
+    content: '布洛芬是一种非甾体抗炎药(NSAID)，用于缓解轻度至中度疼痛，如头痛、牙痛、肌肉痛、关节痛。也可用于退烧。常见副作用包括胃部不适、恶心、呕吐。禁止与阿司匹林或其他NSAID类药物同时服用，会增加胃出血和肾损伤风险。老年人应从小剂量开始，每次200mg，每日不超过800mg。饭后服用可减少胃部刺激。'
+  },
+  {
+    id: 'doc2',
+    title: '降压药通用服用指南',
+    category: 'MEDICINE',
+    content: '降压药主要包括五大类：ACEI（如卡托普利、依那普利）、ARB（如缬沙坦、厄贝沙坦）、CCB（如硝苯地平、氨氯地平）、利尿剂（如氢氯噻嗪）、β受体阻滞剂（如美托洛尔、比索洛尔）。服药时间建议：早晨起床后服用效果最佳。漏服处理：若距下次服药时间超过4小时可补服，否则跳过本次，不可一次服用双倍剂量。服药期间禁止饮酒。不可突然停药，需在医生指导下逐步减量。'
+  },
+  {
+    id: 'doc3',
+    title: '老年人多重用药安全指南',
+    category: 'SAFETY',
+    content: '老年人多重用药（同时服用5种及以上药物）非常普遍，需特别注意以下几点：1. 肝肾功能随年龄减退，药物代谢减慢，多数药物需要调整剂量；2. 药物相互作用风险显著增加，每增加一种药物，不良反应风险呈指数上升；3. 建议每3-6个月由医生或药师进行一次用药审查；4. 服用抗凝药（如华法林、利伐沙班）需定期监测凝血功能；5. 避免长期使用苯二氮䓬类安眠药（如艾司唑仑），会导致依赖和认知功能下降；6. 中药和西药需间隔至少1小时服用。'
+  },
+  {
+    id: 'doc4',
+    title: '糖尿病用药注意事项',
+    category: 'MEDICINE',
+    content: '口服降糖药主要分为：双胍类（二甲双胍）、磺脲类（格列美脲）、DPP-4抑制剂（西格列汀）、SGLT-2抑制剂（达格列净）等。二甲双胍是2型糖尿病一线用药，通常随餐服用以减轻胃肠道反应。磺脲类药物需在餐前30分钟服用，有低血糖风险。使用胰岛素的患者需注意注射部位轮换，避免脂肪萎缩。血糖监测频率根据治疗方案而定，口服药患者每周至少测2-3次，胰岛素治疗者每日至少3-4次。'
+  },
+  {
+    id: 'doc5',
+    title: '阿司匹林用药须知',
+    category: 'MEDICINE',
+    content: '阿司匹林是最常用的抗血小板药物，小剂量（75-100mg/日）用于预防心脑血管疾病。肠溶片需整片吞服，不可嚼碎，空腹或饭后服用均可。主要副作用是胃肠道反应和出血风险增加。以下情况禁用：活动性胃溃疡、出血性疾病、严重肝肾功能不全、对阿司匹林过敏者。手术前需停药7-10天。与布洛芬等NSAID合用会增加胃出血风险，应避免同时使用。'
+  },
+  {
+    id: 'doc6',
+    title: '老年人常见用药误区',
+    category: 'SAFETY',
+    content: '常见用药误区：1. "症状消失就停药"——高血压、糖尿病等慢性病需长期服药，擅自停药会导致病情反弹；2. "中药没有副作用"——中药也有肝肾毒性，需在医师指导下使用；3. "多吃几种药好得快"——多重用药增加不良反应风险；4. "保健品可以替代药物"——保健品不能替代正规药物治疗；5. "别人吃这个药效果好我也试试"——用药需个体化，不可盲目跟风；6. "过期药减量吃没关系"——过期药品可能失效或产生毒性，必须丢弃。'
+  },
+  {
+    id: 'doc7',
+    title: '抗生素合理使用指南',
+    category: 'MEDICINE',
+    content: '抗生素仅对细菌感染有效，对病毒性感冒、流感无效。常见抗生素分类：青霉素类（阿莫西林）、头孢菌素类（头孢克洛）、大环内酯类（阿奇霉素）、喹诺酮类（左氧氟沙星）。使用原则：1. 有明确细菌感染指征时才使用；2. 按疗程服完，不可症状好转就停药，否则易产生耐药菌；3. 青霉素过敏者禁用头孢菌素（有交叉过敏风险）；4. 喹诺酮类禁用于18岁以下青少年和孕妇；5. 服用抗生素期间禁止饮酒（尤其是头孢类，会引起双硫仑样反应）。'
+  },
+  {
+    id: 'doc8',
+    title: '冠心病患者用药管理',
+    category: 'HEALTH',
+    content: '冠心病患者常用药物包括：抗血小板药（阿司匹林、氯吡格雷）、他汀类降脂药（阿托伐他汀、瑞舒伐他汀）、β受体阻滞剂（美托洛尔）、ACEI/ARB、硝酸酯类（硝酸甘油）。硝酸甘油舌下含服用于心绞痛急性发作，2-3分钟起效。他汀类药物通常睡前服用效果更佳。冠心病患者需终身服药，不可自行停药。定期复查血脂、肝功能、心电图，每3-6个月一次。出现胸痛持续不缓解需立即就医。'
+  }
+];
+
+// ==================== 初始化 ====================
+function init() {
+  renderPresetDocs();
+  switchMode('health-knowledge', document.querySelector('.mode-chip[data-mode="health-knowledge"]'));
+}
+init();
+
+function renderPresetDocs() {
+  const container = document.getElementById('presetDocs');
+  container.innerHTML = PRESET_DOCS.map(doc => `
+    <div class="preset-doc ${selectedDocs.has(doc.id) ? 'selected' : ''}"
+         onclick="toggleDoc('${doc.id}')" id="card-${doc.id}">
+      <div class="doc-check">${selectedDocs.has(doc.id) ? '✓' : ''}</div>
+      <div class="doc-title">${doc.title}</div>
+      <div class="doc-meta">
+        <span>📂 ${doc.category}</span>
+        <span>📝 ${doc.content.length} 字符</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleDoc(id) {
+  if (selectedDocs.has(id)) {
+    selectedDocs.delete(id);
+  } else {
+    selectedDocs.add(id);
+  }
+  renderPresetDocs();
+}
+
+function selectAll() {
+  PRESET_DOCS.forEach(d => selectedDocs.add(d.id));
+  renderPresetDocs();
+}
+
+function deselectAll() {
+  selectedDocs.clear();
+  renderPresetDocs();
+}
+
+// ==================== 步骤1: 上传文档 ====================
+
+/** 批量导入预设文档 */
+async function batchImport() {
+  if (selectedDocs.size === 0) {
+    showToast('请至少勾选一篇文档', 'error');
+    return;
+  }
+
+  const docs = PRESET_DOCS.filter(d => selectedDocs.has(d.id));
+  const btn = document.getElementById('btnBatchImport');
+  const resultEl = document.getElementById('importResult');
+  btn.disabled = true;
+  btn.textContent = '⏳ 导入中...';
+  resultEl.innerHTML = '';
+
+  let success = 0, fail = 0;
+  for (const doc of docs) {
+    try {
+      const res = await fetch(`${BASE_URL()}/ai/kb/document`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: doc.title, category: doc.category, content: doc.content })
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.code === 200) success++;
+        else fail++;
+      } else {
+        fail++;
+      }
+    } catch (e) {
+      fail++;
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🚀 批量导入选中文档';
+  if (success > 0 && fail === 0) {
+    resultEl.innerHTML = `<span style="color:var(--success)">✅ 全部成功！${success} 篇文档已写入向量库</span>`;
+    showToast(`${success} 篇文档导入成功`, 'success');
+  } else if (success > 0) {
+    resultEl.innerHTML = `<span style="color:#faad14">⚠️ ${success} 成功，${fail} 失败</span>`;
+    showToast(`${success} 成功, ${fail} 失败`, 'error');
+  } else {
+    resultEl.innerHTML = `<span style="color:var(--danger)">❌ 导入失败，请确认 elderly-ai 服务已启动</span>`;
+    showToast('导入失败，请检查服务状态', 'error');
+  }
+}
+
+/** 自定义文档上传 */
+async function uploadDocument() {
+  const title = document.getElementById('docTitle').value.trim();
+  const category = document.getElementById('docCategory').value;
+  const content = document.getElementById('docContent').value.trim();
+
+  if (!title || !content) {
+    showToast('请填写文档标题和正文', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btnUpload');
+  const resultEl = document.getElementById('uploadResult');
+  btn.disabled = true;
+  btn.textContent = '⏳ 上传中...';
+  resultEl.innerHTML = '';
+
+  try {
+    const res = await fetch(`${BASE_URL()}/ai/kb/document`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, category, content })
+    });
+    const json = await res.json();
+    if (res.ok && json.code === 200) {
+      resultEl.innerHTML = `<span style="color:var(--success)">✅ 上传成功！文档ID: ${json.data}</span>`;
+      showToast('文档上传成功', 'success');
+      document.getElementById('docTitle').value = '';
+      document.getElementById('docContent').value = '';
+    } else {
+      resultEl.innerHTML = `<span style="color:var(--danger)">❌ 上传失败: ${json.message || '未知错误'}</span>`;
+      showToast('上传失败: ' + (json.message || '未知错误'), 'error');
+    }
+  } catch (e) {
+    resultEl.innerHTML = `<span style="color:var(--danger)">❌ 网络错误: ${e.message}</span>`;
+    showToast('网络错误，请确认服务已启动', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📄 上传文档';
+  }
+}
+
+// ==================== 步骤2: RAG 问答 ====================
+
+function switchMode(mode, el) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tokenRow').style.display = mode === 'ask' ? 'block' : 'none';
+}
+
+async function sendQuestion() {
+  const input = document.getElementById('questionInput');
+  const question = input.value.trim();
+  if (!question) return;
+  input.value = '';
+
+  const chatMessages = document.getElementById('chatMessages');
+  // 清除空状态
+  const emptyState = chatMessages.querySelector('.empty-state');
+  if (emptyState) emptyState.remove();
+
+  // 添加用户消息
+  appendMessage('user', question);
+  // 添加 AI 占位消息
+  const aiMsgEl = appendMessage('ai', '', true);
+
+  const btnSend = document.getElementById('btnSend');
+  btnSend.disabled = true;
+
+  try {
+    let url, body, headers = { 'Content-Type': 'application/json' };
+
+    if (currentMode === 'health-knowledge') {
+      url = `${BASE_URL()}/ai/rag/health-knowledge`;
+      body = JSON.stringify({ question });
+    } else if (currentMode === 'ask') {
+      url = `${BASE_URL()}/ai/rag/ask`;
+      const token = document.getElementById('jwtToken').value.trim();
+      if (token) headers['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+      body = JSON.stringify({ question });
+    } else {
+      // 普通 AI 模式：直接发纯文本
+      url = `${BASE_URL()}/ai/medicine/question`;
+      headers['Content-Type'] = 'text/plain';
+      body = question;
+    }
+
+    const res = await fetch(url, { method: 'POST', headers, body });
+
+    if (!res.ok) {
+      updateAIMessage(aiMsgEl, `❌ 请求失败 (HTTP ${res.status})，请确认服务已启动`);
+      return;
+    }
+
+    // 读取 SSE 流
+    const text = await res.text();
+    const events = parseSSE(text);
+    const errorEvent = events.find(e => e.type === 'error');
+    if (errorEvent) {
+      updateAIMessage(aiMsgEl, `❌ ${errorEvent.data}`);
+      return;
+    }
+
+    const fullText = events.filter(e => e.type === 'message').map(e => e.data).join('');
+    if (!fullText) {
+      updateAIMessage(aiMsgEl, '⚠️ 未收到有效回答，请确认知识库中已有文档');
+      return;
+    }
+
+    // 打字机效果
+    await typewriter(aiMsgEl, fullText);
+  } catch (e) {
+    updateAIMessage(aiMsgEl, `❌ 网络错误: ${e.message}`);
+  } finally {
+    btnSend.disabled = false;
+  }
+}
+
+/** 解析 SSE 格式 */
+function parseSSE(text) {
+  const events = [];
+  const parts = text.split(/\n\n|\r\n\r\n/);
+  for (const part of parts) {
+    if (!part.trim()) continue;
+    const lines = part.split(/\n|\r\n/);
+    let eventType = 'message', data = '';
+    for (const line of lines) {
+      if (line.startsWith('event:')) eventType = line.substring(6).trim();
+      else if (line.startsWith('data:')) data = line.substring(5).trim();
+    }
+    if (data) events.push({ type: eventType, data });
+  }
+  return events;
+}
+
+/** 打字机效果 */
+function typewriter(msgEl, fullText) {
+  return new Promise(resolve => {
+    const bubble = msgEl.querySelector('.msg-bubble');
+    let pos = 0;
+    const charsPerTick = 3;
+    const interval = 15;
+
+    const timer = setInterval(() => {
+      pos += charsPerTick;
+      if (pos >= fullText.length) {
+        bubble.textContent = fullText;
+        clearInterval(timer);
+        resolve();
+      } else {
+        bubble.textContent = fullText.substring(0, pos);
+      }
+    }, interval);
+  });
+}
+
+function appendMessage(role, text, isStreaming) {
+  const chatMessages = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${role === 'user' ? '👤' : '🤖'}</div>
+    <div>
+      <div class="msg-bubble">${text || (isStreaming ? '思考中...' : '')}</div>
+    </div>
+  `;
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  return div;
+}
+
+function updateAIMessage(msgEl, text) {
+  const bubble = msgEl.querySelector('.msg-bubble');
+  bubble.textContent = text;
+}
+
+// ==================== 资讯同步 ====================
+
+/** 从资讯模块同步文章到向量库 */
+async function syncFromNews() {
+  const btn = document.getElementById('btnSync');
+  const resultEl = document.getElementById('syncResult');
+  const statsDiv = document.getElementById('syncStats');
+  const category = document.getElementById('syncCategory').value;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ 同步中...';
+  resultEl.innerHTML = '';
+  statsDiv.style.display = 'none';
+
+  try {
+    const params = category ? `?category=${encodeURIComponent(category)}` : '';
+    const res = await fetch(`${BASE_URL()}/ai/kb/sync-from-news${params}`, { method: 'POST' });
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json.code === 200) {
+        const { total, synced, skipped } = json.data;
+        document.getElementById('statTotal').textContent = total;
+        document.getElementById('statSynced').textContent = synced;
+        document.getElementById('statSkipped').textContent = skipped;
+        statsDiv.style.display = 'block';
+        resultEl.innerHTML = `<span style="color:var(--success)">✅ 同步完成！</span>`;
+        showToast(`同步完成：${synced} 篇新入库，${skipped} 篇已存在`, 'success');
+      } else {
+        resultEl.innerHTML = `<span style="color:var(--danger)">❌ ${json.message || '同步失败'}</span>`;
+        showToast('同步失败: ' + (json.message || '未知错误'), 'error');
+      }
+    } else {
+      resultEl.innerHTML = `<span style="color:var(--danger)">❌ HTTP ${res.status}</span>`;
+      showToast(`请求失败 (HTTP ${res.status})`, 'error');
+    }
+  } catch (e) {
+    resultEl.innerHTML = `<span style="color:var(--danger)">❌ 网络错误: ${e.message}</span>`;
+    showToast('网络错误，请确认 elderly-ai 和 elderly-news 服务已启动', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔄 开始同步';
+  }
+}
+
+// ==================== 工具函数 ====================
+
+function switchKbTab(tab) {
+  ['preset', 'custom', 'sync'].forEach(t => {
+    document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.kb-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.includes(
+      tab === 'preset' ? '预设' : tab === 'custom' ? '自定义' : '同步'
+    ));
+  });
+}
+
+function showToast(msg, type) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => { toast.remove(); }, 3000);
+}
+</script>
+
+</body>
+</html>

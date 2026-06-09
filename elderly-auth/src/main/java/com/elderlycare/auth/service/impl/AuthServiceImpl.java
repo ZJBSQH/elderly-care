@@ -14,7 +14,7 @@ import com.elderlycare.common.security.util.JwtUtil;
 import com.elderlycare.common.security.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
+import com.elderlycare.common.core.util.BeanUtil;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,6 +28,9 @@ import java.util.Map;
 import static com.elderlycare.auth.dto.AuthErrorCode.*;
 import static com.elderlycare.common.core.exception.BaseErrorCode.*;
 
+/**
+ * 认证服务实现类，处理用户注册、登录、短信验证码、个人信息管理、密码修改等核心业务逻辑
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -46,6 +49,9 @@ public class AuthServiceImpl implements AuthService {
     private final SecurityUtil securityUtil;
     private final UserFeignClient userFeignClient;
 
+    /**
+     * 发送短信验证码，根据业务类型（注册/登录/重置）校验手机号并生成6位验证码存入Redis
+     */
     @Override
     public Result<Void> sendSmsCode(SmsCodeRequest request) {
         String phone = request.getPhone();
@@ -64,6 +70,9 @@ public class AuthServiceImpl implements AuthService {
         return Result.success();
     }
 
+    /**
+     * 用户注册，校验验证码、创建用户记录，老人类型自动创建Elder档案
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<UserVO> register(RegisterRequest request) {
@@ -102,10 +111,13 @@ public class AuthServiceImpl implements AuthService {
 
         redisTemplate.delete(SMS_CODE_PREFIX + phone);
         UserVO vo = new UserVO();
-        BeanUtils.copyProperties(user, vo);
+        BeanUtil.copyProperties(user, vo);
         return Result.success(vo);
     }
 
+    /**
+     * 用户登录，校验手机号和密码，生成JWT令牌并返回用户信息
+     */
     @Override
     public Result<Map<String, Object>> login(LoginRequest request) {
         User user = userMapper.selectByPhone(request.getPhone());
@@ -133,33 +145,42 @@ public class AuthServiceImpl implements AuthService {
         return Result.success(result);
     }
 
+    /**
+     * 根据手机号查询用户
+     */
     @Override
     public Result<User> findByPhone(String phone) {
         return Result.success(userMapper.selectByPhone(phone));
     }
 
+    /**
+     * 保存用户信息
+     */
     @Override
     public Result<Void> saveUser(User user) {
         userMapper.insert(user);
         return Result.success();
     }
 
+    /**
+     * 更新用户个人信息（姓名、头像、年龄、性别等）
+     */
     @Override
     public Result<UserVO> updateProfile(ProfileUpdateRequest request) {
         User user = userMapper.selectById(request.getId());
         if (user == null) throw new BusinessException(USER_NOT_EXIST);
 
-        if (request.getName() != null) user.setName(request.getName());
-        if (request.getAvatar() != null) user.setAvatar(request.getAvatar());
-        if (request.getAge() != null) user.setAge(request.getAge());
-        if (request.getSex() != null) user.setSex(request.getSex());
+        BeanUtil.copyNonNullProperties(request, user);
         userMapper.updateById(user);
 
         UserVO vo = new UserVO();
-        BeanUtils.copyProperties(user, vo);
+        BeanUtil.copyProperties(user, vo);
         return Result.success(vo);
     }
 
+    /**
+     * 通过短信验证码重置密码
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> resetPassword(PasswordResetRequest request) {
@@ -174,6 +195,9 @@ public class AuthServiceImpl implements AuthService {
         return Result.success();
     }
 
+    /**
+     * 修改密码（需验证原密码）
+     */
     @Override
     public Result<Void> changePassword(PasswordChangeRequest request) {
         User user = userMapper.selectByPhone(request.getPhone());
@@ -186,6 +210,9 @@ public class AuthServiceImpl implements AuthService {
         return Result.success();
     }
 
+    /**
+     * 获取当前登录用户信息（从SecurityContext中获取用户ID）
+     */
     @Override
     public Result<Map<String, Object>> getCurrentUserInfo() {
         Integer userId = securityUtil.getCurrentUserId();
@@ -200,6 +227,9 @@ public class AuthServiceImpl implements AuthService {
         return Result.success(result);
     }
 
+    /**
+     * 根据手机号查询用户信息（对外Feign调用，不含密码）
+     */
     @Override
     public Result<Map<String, Object>> getUserByPhone(String phone) {
         User user = userMapper.selectByPhone(phone);
@@ -216,6 +246,9 @@ public class AuthServiceImpl implements AuthService {
         return Result.success(result);
     }
 
+    /**
+     * 根据用户ID查询用户信息（对外Feign调用，不含密码）
+     */
     @Override
     public Result<Map<String, Object>> getUserById(Integer id) {
         User user = userMapper.selectById(id);
@@ -258,6 +291,9 @@ public class AuthServiceImpl implements AuthService {
         return null;
     }
 
+    /**
+     * 校验短信验证码是否正确且未过期
+     */
     private void validateSmsCode(String phone, String inputCode) {
         String stored = redisTemplate.opsForValue().get(SMS_CODE_PREFIX + phone);
         if (stored == null) throw new BusinessException(SMS_CODE_EXPIRED);

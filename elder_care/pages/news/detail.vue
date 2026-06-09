@@ -29,6 +29,13 @@
         <text class="content-text">{{ article.summary || '暂无内容' }}</text>
       </view>
 
+      <!-- AI 提问 -->
+      <view class="ai-ask-card" @click="askAIAboutArticle">
+        <text class="ai-ask-icon">🤖</text>
+        <text class="ai-ask-text">对这篇文章有疑问？AI 帮你解答</text>
+        <text class="ai-ask-arrow">→</text>
+      </view>
+
       <!-- 互动栏 -->
       <view class="action-bar">
         <view class="action-item" :class="{ active: isLiked }" @click="toggleLike">
@@ -145,6 +152,12 @@ async function toggleCollect() {
   }
 }
 
+/** 跳转到 AI 问答，预填入文章标题 */
+function askAIAboutArticle() {
+  const title = article.value?.title || ''
+  uni.navigateTo({ url: `/pages/ai/chat?question=${encodeURIComponent(title)}` })
+}
+
 onMounted(() => {
   const pages = getCurrentPages()
   const current = pages[pages.length - 1]
@@ -225,6 +238,34 @@ onMounted(() => {
   color: $color-text;
   line-height: 1.8;
   white-space: pre-wrap;
+}
+
+// ========== AI 提问卡片 ==========
+.ai-ask-card {
+  background: linear-gradient(135deg, rgba(91,143,249,0.06) 0%, rgba(54,207,201,0.06) 100%);
+  border-radius: $elder-radius-lg;
+  padding: $elder-spacing;
+  margin-bottom: $elder-spacing-sm;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  border: 2rpx dashed rgba(91,143,249,0.3);
+
+  &:active { background: rgba(91,143,249,0.1); }
+}
+
+.ai-ask-icon { font-size: 40rpx; }
+
+.ai-ask-text {
+  flex: 1;
+  font-size: $elder-font-small;
+  color: $color-primary;
+  font-weight: 600;
+}
+
+.ai-ask-arrow {
+  font-size: $elder-font-small;
+  color: $color-primary;
 }
 
 // ========== 互动栏 ==========
