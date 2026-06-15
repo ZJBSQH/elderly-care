@@ -12,6 +12,7 @@ import com.elderlycare.remind.dto.RemindTaskUpdateRequest;
 import com.elderlycare.remind.entity.Notification;
 import com.elderlycare.remind.entity.Remind;
 import com.elderlycare.remind.entity.RemindTask;
+import com.elderlycare.remind.feign.UserAccessFeignClient;
 import com.elderlycare.remind.mapper.NotificationMapper;
 import com.elderlycare.remind.mapper.RemindMapper;
 import com.elderlycare.remind.mapper.RemindTaskMapper;
@@ -62,9 +63,14 @@ public class RemindServiceImpl implements RemindService {
     private final NotificationMapper notificationMapper;
     /** 安全工具类 */
     private final SecurityUtil securityUtil;
+    /** 用户访问权限客户端 */
+    private final UserAccessFeignClient userAccessFeignClient;
 
     /**
      * 获取当前登录用户 ID
+     *
+     * @return 当前登录用户 ID
+     * @throws BusinessException 如果用户未登录
      */
     private Integer getCurrentUserId() {
         Integer userId = securityUtil.getCurrentUserId();
@@ -74,6 +80,13 @@ public class RemindServiceImpl implements RemindService {
         return userId;
     }
 
+    /**
+     * 获取或创建当前用户的提醒设置
+     * <p>
+     * 如果用户还没有提醒设置，则创建默认设置并返回
+     *
+     * @return 提醒设置信息
+     */
     @Override
     public Result<RemindVO> getOrCreateSettings() {
         Integer userId = getCurrentUserId();
@@ -94,6 +107,13 @@ public class RemindServiceImpl implements RemindService {
         return Result.success(vo);
     }
 
+    /**
+     * 更新当前用户的提醒设置
+     *
+     * @param request 提醒设置更新请求
+     * @return 更新后的提醒设置信息
+     * @throws BusinessException 如果提醒设置不存在
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<RemindVO> updateSettings(RemindSettingUpdateRequest request) {
@@ -114,10 +134,18 @@ public class RemindServiceImpl implements RemindService {
         return Result.success(vo);
     }
 
+    /**
+     * 创建提醒任务
+     *
+     * @param request 提醒任务创建请求
+     * @return 创建成功的提醒任务信息
+     * @throws BusinessException 如果无权访问指定老人档案
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<RemindTaskVO> createTask(RemindTaskCreateRequest request) {
         Integer userId = getCurrentUserId();
+        assertCanAccessElder(request.getElderId());
 
         RemindTask task = new RemindTask();
         task.setUserId(userId);
@@ -145,6 +173,13 @@ public class RemindServiceImpl implements RemindService {
         return Result.success(vo);
     }
 
+    /**
+     * 更新提醒任务
+     *
+     * @param request 提醒任务更新请求
+     * @return 更新后的提醒任务信息
+     * @throws BusinessException 如果任务不存在或无权修改
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<RemindTaskVO> updateTask(RemindTaskUpdateRequest request) {
@@ -168,6 +203,13 @@ public class RemindServiceImpl implements RemindService {
         return Result.success(vo);
     }
 
+    /**
+     * 删除提醒任务
+     *
+     * @param taskId 提醒任务 ID
+     * @return 操作结果
+     * @throws BusinessException 如果任务不存在或无权删除
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> deleteTask(Integer taskId) {
@@ -186,6 +228,13 @@ public class RemindServiceImpl implements RemindService {
         return Result.success();
     }
 
+    /**
+     * 根据任务 ID 查询提醒任务详情
+     *
+     * @param taskId 提醒任务 ID
+     * @return 提醒任务详情
+     * @throws BusinessException 如果任务不存在或无权查看
+     */
     @Override
     public Result<RemindTaskVO> getTaskById(Integer taskId) {
         Integer userId = getCurrentUserId();
@@ -203,6 +252,13 @@ public class RemindServiceImpl implements RemindService {
         return Result.success(vo);
     }
 
+    /**
+     * 分页查询当前用户的提醒任务列表
+     *
+     * @param page     页码（默认为 1）
+     * @param pageSize 每页大小（默认为 10）
+     * @return 提醒任务列表
+     */
     @Override
     public Result<List<RemindTaskVO>> listTasks(Integer page, Integer pageSize) {
         Integer userId = getCurrentUserId();
@@ -217,15 +273,26 @@ public class RemindServiceImpl implements RemindService {
             RemindTaskVO vo = new RemindTaskVO();
             BeanUtil.copyProperties(task, vo);
             return vo;
-        }).collect(Collectors.toList());
+        }).toList();
 
         return Result.success(voList);
     }
 
+    /**
+     * 获取今日提醒任务列表
+     * <p>
+     * 如果指定了老人 ID，则查询该老人的今日提醒任务；
+     * 否则查询当前用户的今日提醒任务
+     *
+     * @param elderId 老人 ID（可选）
+     * @return 今日提醒任务列表
+     * @throws BusinessException 如果无权访问指定老人档案
+     */
     @Override
     public Result<List<RemindTaskVO>> getTodayTasks(Integer elderId) {
         List<RemindTask> todayTasks;
         if (elderId != null) {
+            assertCanAccessElder(elderId);
             todayTasks = remindTaskMapper.selectTodayTasksByElderId(elderId);
         } else {
             Integer userId = getCurrentUserId();
@@ -236,15 +303,29 @@ public class RemindServiceImpl implements RemindService {
                     RemindTaskVO vo = new RemindTaskVO();
                     BeanUtil.copyProperties(task, vo);
                     return vo;
-                }).collect(Collectors.toList());
+                }).toList();
         return Result.success(voList);
     }
 
+    /**
+     * 获取所有今日提醒任务的原始数据
+     * <p>
+     * 该方法用于定时任务扫描，不进行权限校验
+     *
+     * @return 今日所有提醒任务列表
+     */
     @Override
     public List<RemindTask> getAllTodayTasksRaw() {
         return remindTaskMapper.selectTodayTasks();
     }
 
+    /**
+     * 分页查询当前用户的通知列表
+     *
+     * @param page     页码（默认为 1）
+     * @param pageSize 每页大小（默认为 10）
+     * @return 通知列表
+     */
     @Override
     public Result<List<NotificationVO>> getMyNotifications(Integer page, Integer pageSize) {
         Integer userId = getCurrentUserId();
@@ -260,11 +341,16 @@ public class RemindServiceImpl implements RemindService {
             NotificationVO vo = new NotificationVO();
             BeanUtil.copyProperties(notification, vo);
             return vo;
-        }).collect(Collectors.toList());
+        }).toList();
 
         return Result.success(voList);
     }
 
+    /**
+     * 统计当前用户未读通知数量
+     *
+     * @return 未读通知数量
+     */
     @Override
     public Result<Integer> countUnread() {
         Integer userId = getCurrentUserId();
@@ -272,6 +358,13 @@ public class RemindServiceImpl implements RemindService {
         return Result.success(count);
     }
 
+    /**
+     * 将指定通知标记为已读
+     *
+     * @param notificationId 通知 ID
+     * @return 操作结果
+     * @throws BusinessException 如果通知不存在
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> markAsRead(Integer notificationId) {
@@ -288,6 +381,11 @@ public class RemindServiceImpl implements RemindService {
         return Result.success();
     }
 
+    /**
+     * 将当前用户的所有通知标记为已读
+     *
+     * @return 操作结果
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> markAllAsRead() {
@@ -301,8 +399,16 @@ public class RemindServiceImpl implements RemindService {
         return Result.success();
     }
 
+    /**
+     * 根据老人 ID 查询其所有提醒任务
+     *
+     * @param elderId 老人 ID
+     * @return 提醒任务列表
+     * @throws BusinessException 如果无权访问指定老人档案
+     */
     @Override
     public Result<List<RemindTaskVO>> getTasksByElderId(Integer elderId) {
+        assertCanAccessElder(elderId);
         LambdaQueryWrapper<RemindTask> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(RemindTask::getElderId, elderId)
                 .orderByDesc(RemindTask::getCreateTime);
@@ -311,7 +417,20 @@ public class RemindServiceImpl implements RemindService {
             RemindTaskVO vo = new RemindTaskVO();
             BeanUtil.copyProperties(task, vo);
             return vo;
-        }).collect(Collectors.toList());
+        }).toList();
         return Result.success(voList);
+    }
+
+    /**
+     * 校验当前用户是否可以访问指定老人档案
+     *
+     * @param elderId 老人 ID
+     * @throws BusinessException 如果无权访问该老人档案
+     */
+    private void assertCanAccessElder(Integer elderId) {
+        Boolean canAccess = userAccessFeignClient.canAccessElder(elderId).getData();
+        if (!Boolean.TRUE.equals(canAccess)) {
+            throw new BusinessException(403, "无权访问该老人提醒数据");
+        }
     }
 }

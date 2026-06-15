@@ -102,7 +102,7 @@ public class MedicalContextBuilderImpl implements MedicalContextBuilder {
         }else {
             int index = 1;
             for (Map<String, Object> m : medicines) {
-                sb.append(String.format("%d,%s,%s,%s,提醒时间 %s\n",
+                sb.append(String.format("%d,%s,%s,%s,提醒时间 %s%n",
                         index++,
                         m.getOrDefault("medicineName", "未知"),
                         m.getOrDefault("dosage", ""),
@@ -119,7 +119,7 @@ public class MedicalContextBuilderImpl implements MedicalContextBuilder {
         } else {
             for (int i = 0; i < records.size(); i++) {
                 Map<String, Object> r = records.get(i);
-                sb.append(String.format("%d. %s：%s（%s）\n",
+                sb.append(String.format("%d. %s：%s（%s）%n",
                         i + 1,
                         r.getOrDefault("medicineName", "未知"),
                         r.getOrDefault("status", "未知"),
@@ -135,7 +135,7 @@ public class MedicalContextBuilderImpl implements MedicalContextBuilder {
         } else {
             for (int i = 0; i < tasks.size(); i++) {
                 Map<String, Object> t = tasks.get(i);
-                sb.append(String.format("%d. %s %s\n",
+                sb.append(String.format("%d. %s %s%n",
                         i + 1,
                         t.getOrDefault("remindTime", ""),
                         t.getOrDefault("title", "")));

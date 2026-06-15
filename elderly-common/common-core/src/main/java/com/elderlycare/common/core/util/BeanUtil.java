@@ -13,6 +13,9 @@ import java.util.Set;
  */
 public class BeanUtil {
 
+
+    private BeanUtil() {}
+
     /**
      * 复制非空属性
      */

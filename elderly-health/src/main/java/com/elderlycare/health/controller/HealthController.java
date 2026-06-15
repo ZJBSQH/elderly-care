@@ -4,6 +4,7 @@ import com.elderlycare.common.core.result.Result;
 import com.elderlycare.common.security.util.SecurityUtil;
 import com.elderlycare.health.dto.HealthDTO;
 import com.elderlycare.health.dto.HealthQuery;
+import com.elderlycare.health.feign.UserAccessFeignClient;
 import com.elderlycare.health.service.HealthService;
 import com.elderlycare.health.vo.AlertVO;
 import com.elderlycare.health.vo.HealthVO;
@@ -39,19 +40,34 @@ public class HealthController {
     private final HealthService healthService;
     /** 安全工具类，用于获取当前用户信息 */
     private final SecurityUtil securityUtil;
+    /** 用户访问权限客户端 */
+    private final UserAccessFeignClient userAccessFeignClient;
 
     /**
      * 解析 elderId：优先使用前端传参，为空则从 JWT 安全上下文自动获取
      */
     private Integer resolveElderId(Integer requestElderId) {
         if (requestElderId != null) {
+            assertCanAccessElder(requestElderId);
             return requestElderId;
         }
         Integer userId = securityUtil.getCurrentUserId();
         if (userId == null) {
             throw new com.elderlycare.common.core.exception.BusinessException(400, "无法识别当前用户身份");
         }
-        return userId;
+        Integer elderId = userAccessFeignClient.getCurrentElderId().getData();
+        assertCanAccessElder(elderId);
+        return elderId;
+    }
+
+    /**
+     * 校验当前用户是否可以访问指定老人档案。
+     */
+    private void assertCanAccessElder(Integer elderId) {
+        Boolean canAccess = userAccessFeignClient.canAccessElder(elderId).getData();
+        if (!Boolean.TRUE.equals(canAccess)) {
+            throw new com.elderlycare.common.core.exception.BusinessException(403, "无权访问该老人健康数据");
+        }
     }
 
     /**

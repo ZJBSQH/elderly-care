@@ -9,6 +9,7 @@ import com.elderlycare.health.dto.HealthDTO;
 import com.elderlycare.health.dto.HealthErrorCode;
 import com.elderlycare.health.dto.HealthQuery;
 import com.elderlycare.health.entity.Health;
+import com.elderlycare.health.feign.UserAccessFeignClient;
 import com.elderlycare.health.mapper.HealthMapper;
 import com.elderlycare.health.service.HealthService;
 import com.elderlycare.health.vo.AlertVO;
@@ -38,6 +39,8 @@ public class HealthServiceImpl implements HealthService {
 
     /** 健康记录 Mapper */
     private final HealthMapper healthMapper;
+    /** 用户访问权限客户端 */
+    private final UserAccessFeignClient userAccessFeignClient;
 
     /**
      * 收缩压正常范围下限
@@ -186,6 +189,7 @@ public class HealthServiceImpl implements HealthService {
         if (existing == null) {
             throw new BusinessException(HealthErrorCode.HEALTH_RECORD_NOT_EXIST);
         }
+        assertCanAccessElder(existing.getElderId());
         Integer originalElderId = healthDTO.getElderId();
         healthDTO.setElderId(null);
         BeanUtil.copyNonNullProperties(healthDTO, existing);
@@ -204,6 +208,7 @@ public class HealthServiceImpl implements HealthService {
         if (health == null) {
             throw new BusinessException(HealthErrorCode.HEALTH_RECORD_NOT_EXIST);
         }
+        assertCanAccessElder(health.getElderId());
         healthMapper.deleteById(id);
         log.info("删除健康记录成功，id: {}", id);
         return Result.success(null, "健康记录删除成功");
@@ -231,6 +236,7 @@ public class HealthServiceImpl implements HealthService {
         if (health == null) {
             throw new BusinessException(HealthErrorCode.HEALTH_RECORD_NOT_EXIST);
         }
+        assertCanAccessElder(health.getElderId());
         health.setIsRead(1);
         healthMapper.updateById(health);
         return Result.success();
@@ -306,6 +312,16 @@ public class HealthServiceImpl implements HealthService {
      * @param health 健康记录实体（含完整字段）
      * @return true-异常, false-正常
      */
+    /**
+     * 校验当前用户是否可以访问指定老人档案。
+     */
+    private void assertCanAccessElder(Integer elderId) {
+        Boolean canAccess = userAccessFeignClient.canAccessElder(elderId).getData();
+        if (!Boolean.TRUE.equals(canAccess)) {
+            throw new BusinessException(403, "无权访问该老人健康数据");
+        }
+    }
+
     private boolean isAbnormalFromEntity(Health health) {
         if (health.getBloodPressure() != null && !health.getBloodPressure().isEmpty()) {
             try {

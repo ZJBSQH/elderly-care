@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.elderlycare.common.core.exception.BusinessException;
 import com.elderlycare.common.core.result.Result;
 import com.elderlycare.common.security.util.SecurityUtil;
+import com.elderlycare.common.vo.UserVO;
 import com.elderlycare.user.dto.ElderInfoDTO;
 import com.elderlycare.user.dto.FamilyBindConfirmRequest;
 import com.elderlycare.user.dto.FamilyBindRequest;
@@ -36,6 +37,7 @@ public class UserServiceImpl implements UserService {
 
     private static final Integer USER_TYPE_ELDER = 0;
     private static final Integer USER_TYPE_FAMILY = 1;
+    private static final Integer USER_TYPE_ADMIN = 2;
     private static final Integer BIND_STATUS_ACTIVE = 1;
     private static final int PHONE_MASK_START = 3;
     private static final int PHONE_MASK_END = 7;
@@ -53,11 +55,11 @@ public class UserServiceImpl implements UserService {
         Integer userId = getCurrentUserIdOrThrow();
 
         // 校验老人类型（通过auth服务查询）
-        Map<String, Object> userInfo = authFeignClient.getUserById(userId).getData();
-        if (userInfo == null || userInfo.get("userType") == null) {
+        UserVO userInfo = authFeignClient.getUserByIdentifier(String.valueOf(userId), false).getData();
+        if (userInfo == null || userInfo.getUserType() == null) {
             throw new BusinessException(UNAUTHORIZED, "用户信息获取失败");
         }
-        if (!USER_TYPE_ELDER.equals(userInfo.get("userType"))) {
+        if (!USER_TYPE_ELDER.equals(userInfo.getUserType())) {
             throw new BusinessException(PARAM_ERROR, "仅老人用户可生成二维码");
         }
 
@@ -79,8 +81,8 @@ public class UserServiceImpl implements UserService {
         Integer userId = getCurrentUserIdOrThrow();
 
         // 校验家属类型
-        Map<String, Object> familyInfo = authFeignClient.getUserById(userId).getData();
-        if (!USER_TYPE_FAMILY.equals(familyInfo.get("userType"))) {
+        UserVO familyInfo = authFeignClient.getUserByIdentifier(String.valueOf(userId), false).getData();
+        if (!USER_TYPE_FAMILY.equals(familyInfo.getUserType())) {
             throw new BusinessException(PARAM_ERROR, "仅家属用户可扫描二维码");
         }
 
@@ -89,7 +91,7 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(QR_CODE_INVALID);
         }
 
-        Map<String, Object> elderUserInfo = authFeignClient.getUserById(elder.getUserId()).getData();
+        UserVO elderUserInfo = authFeignClient.getUserByIdentifier(String.valueOf(elder.getUserId()), false).getData();
         if (elderUserInfo == null) {
             throw new BusinessException(ELDER_NOT_EXIST, "老人信息不存在");
         }
@@ -98,10 +100,10 @@ public class UserServiceImpl implements UserService {
 
         ElderInfoDTO dto = new ElderInfoDTO();
         dto.setElderId(elder.getId());
-        dto.setName((String) elderUserInfo.get("name"));
-        dto.setAge((Integer) elderUserInfo.get("age"));
-        dto.setSex((String) elderUserInfo.get("sex"));
-        dto.setPhone(maskPhone((String) elderUserInfo.get("phone")));
+        dto.setName(elderUserInfo.getName());
+        dto.setAge(elderUserInfo.getAge());
+        dto.setSex(elderUserInfo.getSex());
+        dto.setPhone(maskPhone(elderUserInfo.getPhone()));
         dto.setHasBound(alreadyBound);
 
         log.info("用户ID{}解析二维码成功，获取老人ID{}信息", userId, elder.getUserId());
@@ -115,24 +117,24 @@ public class UserServiceImpl implements UserService {
     @Transactional(rollbackFor = Exception.class)
     public Result<Void> bindFamily(FamilyBindRequest request) {
         // 通过auth服务校验家属
-        Map<String, Object> familyInfo = authFeignClient.getUserByPhone(request.getFamilyPhone()).getData();
+        UserVO familyInfo = authFeignClient.getUserByIdentifier(request.getFamilyPhone(), true).getData();
         if (familyInfo == null) {
             throw new BusinessException(PARAM_ERROR, "家属手机号未注册");
         }
-        if (!USER_TYPE_FAMILY.equals(familyInfo.get("userType"))) {
+        if (!USER_TYPE_FAMILY.equals(familyInfo.getUserType())) {
             throw new BusinessException(PARAM_ERROR, "该用户不是家属类型");
         }
-        Integer familyUserId = (Integer) familyInfo.get("id");
+        Integer familyUserId = familyInfo.getId();
 
         // 通过auth服务校验老人
-        Map<String, Object> elderInfo = authFeignClient.getUserByPhone(request.getElderPhone()).getData();
+        UserVO elderInfo = authFeignClient.getUserByIdentifier(request.getElderPhone(), true).getData();
         if (elderInfo == null) {
             throw new BusinessException(PARAM_ERROR, "老人手机号未注册");
         }
-        if (!USER_TYPE_ELDER.equals(elderInfo.get("userType"))) {
+        if (!USER_TYPE_ELDER.equals(elderInfo.getUserType())) {
             throw new BusinessException(PARAM_ERROR, "该用户不是老人类型");
         }
-        Integer elderUserId = (Integer) elderInfo.get("id");
+        Integer elderUserId = elderInfo.getId();
 
         Elder elder = elderMapper.selectByUserId(elderUserId);
         if (elder == null) {
@@ -173,14 +175,14 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(FAMILY_ALREADY_BOUND);
         }
 
-        Map<String, Object> userInfo = authFeignClient.getUserById(userId).getData();
+        UserVO userInfo = authFeignClient.getUserByIdentifier(String.valueOf(userId), false).getData();
 
         Family family = new Family();
         family.setFamilyUserId(userId);
         family.setElderId(request.getElderId());
         family.setBindStatus(BIND_STATUS_ACTIVE);
         family.setRelation(request.getRelation());
-        family.setPhone((String) userInfo.get("phone"));
+        family.setPhone(userInfo.getPhone());
         family.setBindTime(LocalDateTime.now());
         familyMapper.insert(family);
 
@@ -222,14 +224,14 @@ public class UserServiceImpl implements UserService {
         for (Family f : families) {
             Elder elder = elderMapper.selectById(f.getElderId());
             if (elder == null) continue;
-            Map<String, Object> userInfo = authFeignClient.getUserById(elder.getUserId()).getData();
+            UserVO userInfo = authFeignClient.getUserByIdentifier(String.valueOf(elder.getUserId()), false).getData();
             if (userInfo == null) continue;
             Map<String, Object> item = new HashMap<>();
             item.put("elderId", elder.getId());
             item.put("userId", elder.getUserId());
-            item.put("name", userInfo.get("name"));
-            item.put("phone", maskPhone((String) userInfo.get("phone")));
-            item.put("age", userInfo.get("age"));
+            item.put("name", userInfo.getName());
+            item.put("phone", maskPhone(userInfo.getPhone()));
+            item.put("age", userInfo.getAge());
             item.put("relation", f.getRelation());
             item.put("bindTime", f.getBindTime());
             result.add(item);
@@ -245,12 +247,12 @@ public class UserServiceImpl implements UserService {
         List<Family> families = familyMapper.selectByElderId(elderId);
         List<Map<String, Object>> result = new ArrayList<>();
         for (Family f : families) {
-            Map<String, Object> userInfo = authFeignClient.getUserById(f.getFamilyUserId()).getData();
+            UserVO userInfo = authFeignClient.getUserByIdentifier(String.valueOf(f.getFamilyUserId()), false).getData();
             if (userInfo == null) continue;
             Map<String, Object> item = new HashMap<>();
             item.put("familyUserId", f.getFamilyUserId());
-            item.put("name", userInfo.get("name"));
-            item.put("phone", maskPhone((String) userInfo.get("phone")));
+            item.put("name", userInfo.getName());
+            item.put("phone", maskPhone(userInfo.getPhone()));
             item.put("relation", f.getRelation());
             item.put("bindTime", f.getBindTime());
             result.add(item);
@@ -262,6 +264,56 @@ public class UserServiceImpl implements UserService {
     /**
      * 从SecurityContext获取当前登录用户ID，未登录则抛出异常
      */
+    /**
+     * 判断当前登录用户是否有权访问指定老人档案。
+     * 管理员可访问全部，老人只能访问自己的档案，家属只能访问已绑定的老人档案。
+     */
+    @Override
+    public Result<Boolean> canAccessElder(Integer elderId) {
+        Integer userId = getCurrentUserIdOrThrow();
+        if (elderId == null) {
+            return Result.success(false);
+        }
+
+        UserVO userInfo = authFeignClient.getUserByIdentifier(String.valueOf(userId), false).getData();
+        if (userInfo == null || userInfo.getUserType() == null) {
+            throw new BusinessException(UNAUTHORIZED, "用户信息获取失败");
+        }
+
+        Integer userType = userInfo.getUserType();
+        if (USER_TYPE_ADMIN.equals(userType)) {
+            return Result.success(true);
+        }
+
+        if (USER_TYPE_ELDER.equals(userType)) {
+            Elder elder = elderMapper.selectByUserId(userId);
+            return Result.success(elder != null && elderId.equals(elder.getId()));
+        }
+
+        if (USER_TYPE_FAMILY.equals(userType)) {
+            return Result.success(familyMapper.existsBinding(userId, elderId));
+        }
+
+        return Result.success(false);
+    }
+
+    /**
+     * 获取当前老人用户的老人档案 ID，避免业务服务误把 userId 当作 elderId。
+     */
+    @Override
+    public Result<Integer> getCurrentElderId() {
+        Integer userId = getCurrentUserIdOrThrow();
+        UserVO userInfo = authFeignClient.getUserByIdentifier(String.valueOf(userId), false).getData();
+        if (userInfo == null || !USER_TYPE_ELDER.equals(userInfo.getUserType())) {
+            throw new BusinessException(FORBIDDEN, "仅老人用户可以自动解析老人档案 ID，请家属端明确传入 elderId");
+        }
+        Elder elder = elderMapper.selectByUserId(userId);
+        if (elder == null) {
+            throw new BusinessException(ELDER_NOT_EXIST);
+        }
+        return Result.success(elder.getId());
+    }
+
     private Integer getCurrentUserIdOrThrow() {
         Integer userId = securityUtil.getCurrentUserId();
         if (userId == null) {
@@ -296,3 +348,4 @@ public class UserServiceImpl implements UserService {
         return phone.substring(0, PHONE_MASK_START) + "****" + phone.substring(PHONE_MASK_END);
     }
 }
+

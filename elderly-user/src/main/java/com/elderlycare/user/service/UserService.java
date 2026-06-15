@@ -48,4 +48,14 @@ public interface UserService {
      */
     Result<List<Map<String, Object>>> getBoundFamilyMembers(Integer elderId);
 
+    /**
+     * 判断当前登录用户是否可以访问指定老人档案
+     */
+    Result<Boolean> canAccessElder(Integer elderId);
+
+    /**
+     * 获取当前老人用户对应的老人档案 ID
+     */
+    Result<Integer> getCurrentElderId();
+
 }

@@ -53,26 +53,28 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             try {
                 Claims claims = parseToken(token);
                 Integer userId = claims.get("userId", Integer.class);
+                Integer userType = claims.get("userType", Integer.class);
                 String phone = claims.getSubject();
 
                 if (userId == null) {
-                    return unauthorized(exchange, "Token 无效");
+                    return unauthorized(exchange);
                 }
 
                 // 将用户信息通过请求头传递给下游服务
                 ServerHttpRequest modifiedRequest = exchange.getRequest().mutate()
                         .header("X-User-Id", String.valueOf(userId))
                         .header("X-User-Phone", phone != null ? phone : "")
+                        .header("X-User-Type", userType != null ? String.valueOf(userType) : "")
                         .build();
 
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
             } catch (Exception e) {
                 log.error("Token 解析失败: {}", e.getMessage());
-                return unauthorized(exchange, "Token 无效或已过期");
+                return unauthorized(exchange);
             }
         }
 
-        return unauthorized(exchange, "缺少认证信息");
+        return unauthorized(exchange);
     }
 
     /**
@@ -114,7 +116,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
     /**
      * 返回 401 未授权响应并终止请求
      */
-    private Mono<Void> unauthorized(ServerWebExchange exchange, String message) {
+    private Mono<Void> unauthorized(ServerWebExchange exchange) {
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
         return exchange.getResponse().setComplete();
     }

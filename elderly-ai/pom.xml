@@ -84,13 +84,6 @@
             <artifactId>langchain4j-reactor</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>com.elderlycare</groupId>
-            <artifactId>common-security</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-
     </dependencies>
 
     <build>

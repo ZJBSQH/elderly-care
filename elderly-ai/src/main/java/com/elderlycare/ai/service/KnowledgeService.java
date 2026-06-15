@@ -73,15 +73,7 @@ public class KnowledgeService {
         log.info("上传文档: id={}, title={}, category={}", docId, dto.getTitle(), dto.getCategory());
 
         // 构建元数据（注入到每个向量片段）
-        Map<String, String> metadata = new LinkedHashMap<>();
-        metadata.put("doc_id", docId);
-        metadata.put("title", dto.getTitle());
-        metadata.put("category", dto.getCategory().toUpperCase());
-        metadata.put("created_at", String.valueOf(System.currentTimeMillis()));
-        // 合并自定义元数据
-        if (dto.getMetadata() != null) {
-            dto.getMetadata().forEach((k, v) -> metadata.put(k, v != null ? v.toString() : ""));
-        }
+        Map<String, String> metadata = buildMetadata(docId, dto, false);
 
         // 经摄取管道处理
         List<String> chunkIds = pipeline.ingest(dto.getContent(), metadata);
@@ -120,15 +112,7 @@ public class KnowledgeService {
         log.info("更新文档: {}", docId);
         embeddingStore.removeByDocId(docId);
         // 使用相同的 docId 重新入库
-        Map<String, String> metadata = new LinkedHashMap<>();
-        metadata.put("doc_id", docId);
-        metadata.put("title", dto.getTitle());
-        metadata.put("category", dto.getCategory().toUpperCase());
-        metadata.put("created_at", String.valueOf(System.currentTimeMillis()));
-        metadata.put("updated_at", String.valueOf(System.currentTimeMillis()));
-        if (dto.getMetadata() != null) {
-            dto.getMetadata().forEach((k, v) -> metadata.put(k, v != null ? v.toString() : ""));
-        }
+        Map<String, String> metadata = buildMetadata(docId, dto, true);
         pipeline.ingest(dto.getContent(), metadata);
     }
 
@@ -186,54 +170,148 @@ public class KnowledgeService {
         List<Map<String, Object>> articles = result.getData();
         log.info("从资讯服务获取到 {} 篇文章", articles.size());
 
+
         int synced = 0;
         int skipped = 0;
 
         for (Map<String, Object> article : articles) {
-            Object idObj = article.get("id");
-            if (idObj == null) continue;
-
-            String newsId = "news_" + idObj;
-
-            // 2. 去重检查：已同步的文章跳过
-            if (isAlreadySynced(newsId)) {
-                skipped++;
-                continue;
-            }
-
-            // 3. 构建向量元数据（来源标记为资讯模块）
-            Map<String, String> metadata = new LinkedHashMap<>();
-            metadata.put("doc_id", newsId);
-            metadata.put("title", Objects.toString(article.get("title"), "未知标题"));
-            metadata.put("category", Objects.toString(article.get("category"), "HEALTH"));
-            metadata.put("source", "elderly-news");
-            metadata.put("created_at", String.valueOf(System.currentTimeMillis()));
-
-            // 合并文章摘要作为元数据
-            String summary = Objects.toString(article.get("summary"), "");
-            if (!summary.isEmpty()) {
-                metadata.put("summary", summary);
-            }
-
-            // 4. 经摄取管道入库（切分 → 嵌入 → 存储）
-            try {
-                String content = Objects.toString(article.get("content"), "");
-                if (content.isEmpty()) {
-                    log.warn("文章 {} 内容为空，跳过", newsId);
-                    skipped++;
-                    continue;
-                }
-                pipeline.ingest(content, metadata);
-                markSynced(newsId);
+            SyncResult syncResult = syncSingleArticle(article);
+            if (syncResult.synced) {
                 synced++;
-                log.info("文章同步成功: {} (标题: {})", newsId, metadata.get("title"));
-            } catch (Exception e) {
-                log.error("文章 {} 同步失败: {}", newsId, e.getMessage(), e);
+            } else if (syncResult.skipped) {
+                skipped++;
             }
         }
 
         log.info("资讯同步完成: total={}, synced={}, skipped={}", articles.size(), synced, skipped);
         return Map.of("total", articles.size(), "synced", synced, "skipped", skipped);
+    }
+
+    /**
+     * 构建通用元数据
+     * <p>
+     * 根据不同数据源构建标准元数据结构，包含文档 ID、标题、分类、创建时间等信息。
+     * 支持文档 DTO 和资讯文章两种数据源，自动提取额外元数据。
+     *
+     * @param docId 文档唯一标识
+     * @param source 数据源对象（KnowledgeDocumentDTO 或 Map）
+     * @param isUpdate 是否为更新操作（true 会添加 updated_at 字段）
+     * @return 构建好的元数据
+     */
+    private Map<String, String> buildMetadata(String docId, Object source, boolean isUpdate) {
+        Map<String, String> metadata = new LinkedHashMap<>();
+        metadata.put("doc_id", docId);
+        
+        // 根据数据源类型设置基本字段
+        if (source instanceof KnowledgeDocumentDTO dto) {
+            metadata.put("title", dto.getTitle());
+            metadata.put("category", dto.getCategory().toUpperCase());
+        } else if (source instanceof Map<?, ?> map) {
+            metadata.put("title", Objects.toString(map.get("title"), "未知标题"));
+            metadata.put("category", Objects.toString(map.get("category"), "HEALTH"));
+            metadata.put("source", "elderly-news");
+        }
+        
+        metadata.put("created_at", String.valueOf(System.currentTimeMillis()));
+        
+        if (isUpdate) {
+            metadata.put("updated_at", String.valueOf(System.currentTimeMillis()));
+        }
+        
+        // 提取额外元数据
+        extractExtraMetadata(source, metadata);
+        
+        return metadata;
+    }
+    
+    /**
+     * 提取额外元数据
+     * <p>
+     * 从不同数据源中提取额外的元数据字段。
+     * 对于文档 DTO，合并自定义元数据；对于资讯文章，提取摘要字段。
+     *
+     * @param source 数据源对象
+     * @param metadata 元数据容器
+     */
+    private void extractExtraMetadata(Object source, Map<String, String> metadata) {
+        if (source instanceof KnowledgeDocumentDTO dto) {
+            // 合并文档 DTO 的自定义元数据
+            if (dto.getMetadata() != null) {
+                dto.getMetadata().forEach((k, v) -> metadata.put(k, v != null ? v.toString() : ""));
+            }
+        } else if (source instanceof Map<?, ?> map) {
+            // 提取资讯文章的摘要
+            String summary = Objects.toString(map.get("summary"), "");
+            if (!summary.isEmpty()) {
+                metadata.put("summary", summary);
+            }
+        }
+    }
+
+    /**
+     * 同步单篇文章到向量知识库
+     * <p>
+     * 处理单篇文章的去重检查、元数据构建和向量入库流程。
+     *
+     * @param article 资讯文章数据
+     * @return 同步结果
+     */
+    private SyncResult syncSingleArticle(Map<String, Object> article) {
+        Object idObj = article.get("id");
+        if (idObj == null) {
+            return SyncResult.empty();
+        }
+
+        String newsId = "news_" + idObj;
+
+        // 去重检查：已同步的文章跳过
+        if (isAlreadySynced(newsId)) {
+            return SyncResult.skipped();
+        }
+
+        // 构建元数据
+        Map<String, String> metadata = buildMetadata(newsId, article, false);
+
+        // 经摄取管道入库（切分 → 嵌入 → 存储）
+        try {
+            String content = Objects.toString(article.get("content"), "");
+            if (content.isEmpty()) {
+                log.warn("文章 {} 内容为空，跳过", newsId);
+                return SyncResult.isSkipped();
+            }
+            pipeline.ingest(content, metadata);
+            markSynced(newsId);
+            log.info("文章同步成功: {} (标题: {})", newsId, metadata.get("title"));
+            return SyncResult.isSynced();
+        } catch (Exception e) {
+            log.error("文章 {} 同步失败: {}", newsId, e.getMessage(), e);
+            return SyncResult.empty();
+        }
+    }
+
+    /**
+     * 同步结果对象
+     */
+    private static class SyncResult {
+        final boolean synced;
+        final boolean skipped;
+
+        private SyncResult(boolean synced, boolean skipped) {
+            this.synced = synced;
+            this.skipped = skipped;
+        }
+
+        static SyncResult isSynced() {
+            return new SyncResult(true, false);
+        }
+
+        static SyncResult isSkipped() {
+            return new SyncResult(false, true);
+        }
+
+        static SyncResult empty() {
+            return new SyncResult(false, false);
+        }
     }
 
     /**

@@ -7,6 +7,7 @@ import com.elderlycare.medicine.dto.MedicineAddRequest;
 import com.elderlycare.medicine.dto.MedicineErrorCode;
 import com.elderlycare.medicine.dto.MedicineUpdateRequest;
 import com.elderlycare.medicine.entity.Medicine;
+import com.elderlycare.medicine.feign.UserAccessFeignClient;
 import com.elderlycare.medicine.mapper.MedicineMapper;
 import com.elderlycare.medicine.service.MedicineService;
 import com.elderlycare.medicine.vo.MedicineVO;
@@ -29,10 +30,13 @@ import java.util.stream.Collectors;
 public class MedicineServiceImpl implements MedicineService {
 
     private final MedicineMapper medicineMapper;
+    /** 用户访问权限客户端 */
+    private final UserAccessFeignClient userAccessFeignClient;
 
     /** 新增用药计划 */
     @Override
     public Result<Void> add(MedicineAddRequest request) {
+        assertCanAccessElder(request.getElderId());
         Medicine medicine = new Medicine();
         BeanUtil.copyNonNullProperties(request, medicine);
         // 提醒时间默认 08:00
@@ -55,6 +59,7 @@ public class MedicineServiceImpl implements MedicineService {
         if (medicine == null) {
             throw new BusinessException(MedicineErrorCode.MEDICINE_NOT_EXIST);
         }
+        assertCanAccessElder(medicine.getElderId());
         BeanUtil.copyNonNullProperties(request, medicine);
         medicine.setUpdateTime(LocalDateTime.now());
         medicineMapper.updateById(medicine);
@@ -69,6 +74,7 @@ public class MedicineServiceImpl implements MedicineService {
         if (medicine == null) {
             throw new BusinessException(MedicineErrorCode.MEDICINE_NOT_EXIST);
         }
+        assertCanAccessElder(medicine.getElderId());
         medicineMapper.deleteById(id);
         log.info("删除用药计划成功，id: {}", id);
         return Result.success();
@@ -77,6 +83,7 @@ public class MedicineServiceImpl implements MedicineService {
     /** 根据老人 ID 查询用药计划列表 */
     @Override
     public Result<List<MedicineVO>> selectByElderId(Integer elderId) {
+        assertCanAccessElder(elderId);
         List<Medicine> medicineList = medicineMapper.selectByElderId(elderId);
         List<MedicineVO> voList = medicineList.stream()
                 .map(this::convertToVO)
@@ -100,5 +107,15 @@ public class MedicineServiceImpl implements MedicineService {
         MedicineVO vo = new MedicineVO();
         BeanUtil.copyProperties(medicine, vo);
         return vo;
+    }
+
+    /**
+     * 校验当前用户是否可以访问指定老人档案。
+     */
+    private void assertCanAccessElder(Integer elderId) {
+        Boolean canAccess = userAccessFeignClient.canAccessElder(elderId).getData();
+        if (!Boolean.TRUE.equals(canAccess)) {
+            throw new BusinessException(403, "无权访问该老人用药数据");
+        }
     }
 }

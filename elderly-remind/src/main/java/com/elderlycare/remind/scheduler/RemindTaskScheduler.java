@@ -38,7 +38,7 @@ public class RemindTaskScheduler {
     public void checkAndTriggerTasks() {
         try {
             LocalTime now = LocalTime.now().withSecond(0).withNano(0);
-            LocalDate today = LocalDate.now();
+
 
             // 获取所有当天需要执行的任务
             var tasks = remindService.getAllTodayTasksRaw();
@@ -61,7 +61,7 @@ public class RemindTaskScheduler {
             log.info("当前时间 {} 匹配到 {} 条提醒任务", now, matchedTasks.size());
 
             for (RemindTask task : matchedTasks) {
-                triggerTask(task, today);
+                triggerTask(task);
             }
         } catch (Exception e) {
             log.error("定时扫描提醒任务异常", e);
@@ -71,7 +71,7 @@ public class RemindTaskScheduler {
     /**
      * 触发单个提醒任务：生成通知记录并推送 WebSocket 消息
      */
-    private void triggerTask(RemindTask task, LocalDate today) {
+    private void triggerTask(RemindTask task) {
         try {
             // 防止重复通知：查询同一任务在最近 1 分钟内是否已发送过通知
             LocalDateTime oneMinuteAgo = LocalDateTime.now().minusMinutes(1);

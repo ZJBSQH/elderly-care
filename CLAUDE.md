@@ -2,7 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-#偏好
+# 偏好
+这是一个要放在实习简历里面的项目经历中的项目
+
 所有说明、注释必须使用中文。
 
 所有方法的核心部分必须添加注释，说明其用途和关键逻辑。
@@ -14,6 +16,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 仅在单个微服务内部使用的，封装到该微服务的 util 包中。
 
 多个微服务共用的，封装到 elderly-common 模块中。
+
+# 输出
+
+每次完成任务后,必须输出:
+
+1,修改内容: 列出修改了那些文件.
+2,为什么这样改:说明设计原因.
+3,调用链:例如:用户请求 ->gateway ->controller ->service ->dao ->db
+4,测试方法:给出接口测试方法或启动命令
+5,面试表达:用于适合java实习生或者ai实习生的语言总结
 
 ## Project Overview
 

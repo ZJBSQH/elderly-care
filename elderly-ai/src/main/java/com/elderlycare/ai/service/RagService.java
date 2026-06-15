@@ -135,7 +135,7 @@ public class RagService {
             String title = segment.metadata().getString("title");
             String source = title != null ? title : "未知来源";
             double score = docs.get(i).score();
-            sb.append(String.format("--- 参考资料%d (来源: %s, 相关度: %.2f) ---\n%s\n",
+            sb.append(String.format("--- 参考资料%d (来源: %s, 相关度: %.2f) ---%n%s%n",
                     i + 1, source, score, segment.text()));
         }
 

@@ -4,6 +4,7 @@ import com.elderlycare.admin.dto.SystemConfigDTO;
 import com.elderlycare.admin.service.SystemConfigService;
 import com.elderlycare.admin.vo.SystemConfigVO;
 import com.elderlycare.common.core.result.Result;
+import com.elderlycare.common.security.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +29,8 @@ import java.util.List;
 public class AdminSystemController {
 
     private final SystemConfigService systemConfigService;
+    /** 安全工具类，用于校验管理员权限 */
+    private final SecurityUtil securityUtil;
 
     /**
      * 获取所有系统配置
@@ -36,6 +39,7 @@ public class AdminSystemController {
      */
     @GetMapping("/configs")
     public Result<List<SystemConfigVO>> getAllConfigs() {
+        securityUtil.requireAdmin();
         log.info("获取所有系统配置请求");
         return systemConfigService.getAllConfigs();
     }
@@ -48,6 +52,7 @@ public class AdminSystemController {
      */
     @GetMapping("/configs/{key}")
     public Result<SystemConfigVO> getConfigByKey(@PathVariable String key) {
+        securityUtil.requireAdmin();
         log.info("获取系统配置请求，key: {}", key);
         return systemConfigService.getConfigByKey(key);
     }
@@ -61,6 +66,7 @@ public class AdminSystemController {
      */
     @PutMapping("/configs/{key}")
     public Result<Void> updateConfig(@PathVariable String key, @RequestBody String value) {
+        securityUtil.requireAdmin();
         log.info("更新系统配置请求，key: {}, value: {}", key, value);
         return systemConfigService.updateConfig(key, value);
     }
@@ -73,6 +79,7 @@ public class AdminSystemController {
      */
     @PutMapping("/configs")
     public Result<Void> batchUpdateConfigs(@RequestBody List<SystemConfigDTO> configs) {
+        securityUtil.requireAdmin();
         log.info("批量更新系统配置请求，数量: {}", configs.size());
         return systemConfigService.batchUpdateConfigs(configs);
     }

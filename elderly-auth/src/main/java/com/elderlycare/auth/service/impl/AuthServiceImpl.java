@@ -7,7 +7,7 @@ import com.elderlycare.auth.entity.User;
 import com.elderlycare.auth.feign.UserFeignClient;
 import com.elderlycare.auth.mapper.UserMapper;
 import com.elderlycare.auth.service.AuthService;
-import com.elderlycare.auth.vo.UserVO;
+import com.elderlycare.common.vo.UserVO;
 import com.elderlycare.common.core.exception.BusinessException;
 import com.elderlycare.common.core.result.Result;
 import com.elderlycare.common.security.util.JwtUtil;
@@ -50,7 +50,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserFeignClient userFeignClient;
 
     /**
-     * 发送短信验证码，根据业务类型（注册/登录/重置）校验手机号并生成6位验证码存入Redis
+     * 发送短信验证码，根据业务类型（注册/登录/重置）校验手机号并生成6位验证码存入Redis.
      */
     @Override
     public Result<Void> sendSmsCode(SmsCodeRequest request) {
@@ -59,7 +59,10 @@ public class AuthServiceImpl implements AuthService {
 
         User existUser = userMapper.selectByPhone(phone);
         switch (type) {
-            case "register" -> { if (existUser != null) throw new BusinessException(PHONE_ALREADY_REGISTERED); }
+            case "register" -> {
+                if (existUser != null)
+                    throw new BusinessException(PHONE_ALREADY_REGISTERED);
+            }
             case "login", "reset" -> { if (existUser == null) throw new BusinessException(USER_NOT_EXIST); }
             default -> throw new BusinessException(PARAM_ERROR, "验证码类型仅支持register/login/reset");
         }
@@ -82,8 +85,12 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(PHONE_ALREADY_REGISTERED);
         }
 
-        Integer userType = request.getUserType() != null ? request.getUserType()
-                : (request.getAge() != null && request.getAge() >= 60) ? USER_TYPE_ELDER : USER_TYPE_FAMILY;
+        Integer userType = request.getUserType();
+
+        if (userType == null) {
+            userType = request.getAge()>60 ? USER_TYPE_ELDER: USER_TYPE_FAMILY;
+        }
+
 
         User user = new User();
         user.setPhone(phone);
@@ -228,41 +235,38 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 根据手机号查询用户信息（对外Feign调用，不含密码）
+     * 根据用户标识查询用户信息（对外Feign调用，不含密码）
+     * 支持通过手机号或用户ID查询
+     *
+     * @param identifier 用户标识（手机号或用户ID）
+     * @param isPhone 是否为手机号查询（true: 手机号，false: 用户ID）
+     * @return 用户信息
      */
     @Override
-    public Result<Map<String, Object>> getUserByPhone(String phone) {
-        User user = userMapper.selectByPhone(phone);
+    public Result<UserVO> getUserByIdentifier(String identifier, boolean isPhone) {
+        User user = isPhone ? userMapper.selectByPhone(identifier) : userMapper.selectById(Integer.parseInt(identifier));
         if (user == null) return Result.success(null);
-        Map<String, Object> result = new HashMap<>();
-        user.setPassword(null);
-        result.put("id", user.getId());
-        result.put("phone", user.getPhone());
-        result.put("name", user.getName());
-        result.put("age", user.getAge());
-        result.put("sex", user.getSex());
-        result.put("userType", user.getUserType());
-        result.put("status", user.getStatus());
-        return Result.success(result);
+        return Result.success(buildUserVO(user));
     }
 
     /**
-     * 根据用户ID查询用户信息（对外Feign调用，不含密码）
+     * 构建用户信息视图对象（不含密码）
+     *
+     * @param user 用户实体
+     * @return 用户信息VO
      */
-    @Override
-    public Result<Map<String, Object>> getUserById(Integer id) {
-        User user = userMapper.selectById(id);
-        if (user == null) return Result.success(null);
-        Map<String, Object> result = new HashMap<>();
-        user.setPassword(null);
-        result.put("id", user.getId());
-        result.put("phone", user.getPhone());
-        result.put("name", user.getName());
-        result.put("age", user.getAge());
-        result.put("sex", user.getSex());
-        result.put("userType", user.getUserType());
-        result.put("status", user.getStatus());
-        return Result.success(result);
+    private UserVO buildUserVO(User user) {
+        UserVO userVO = new UserVO();
+        userVO.setId(user.getId());
+        userVO.setPhone(user.getPhone());
+        userVO.setName(user.getName());
+        userVO.setAge(user.getAge());
+        userVO.setSex(user.getSex());
+        userVO.setUserType(user.getUserType());
+        userVO.setStatus(user.getStatus());
+        userVO.setAvatar(user.getAvatar());
+        userVO.setCreateTime(user.getCreateTime());
+        return userVO;
     }
 
     /**

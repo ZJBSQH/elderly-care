@@ -2,7 +2,7 @@ package com.elderlycare.auth.controller;
 
 import com.elderlycare.auth.dto.*;
 import com.elderlycare.auth.service.AuthService;
-import com.elderlycare.auth.vo.UserVO;
+import com.elderlycare.common.vo.UserVO;
 import com.elderlycare.common.core.result.Result;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -77,18 +77,17 @@ public class AuthController {
     }
 
     /**
-     * 根据手机号查询用户信息
+     * 根据用户标识查询用户信息
+     * 支持通过手机号或用户ID查询
+     *
+     * @param identifier 用户标识（手机号或用户ID）
+     * @param isPhone 是否为手机号查询（true: 手机号，false: 用户ID）
+     * @return 用户信息
      */
-    @GetMapping("/user/byPhone")
-    public Result<Map<String, Object>> getUserByPhone(@RequestParam String phone) {
-        return authService.getUserByPhone(phone);
-    }
-
-    /**
-     * 根据用户ID查询用户信息
-     */
-    @GetMapping("/user/byId")
-    public Result<Map<String, Object>> getUserById(@RequestParam Integer id) {
-        return authService.getUserById(id);
+    @GetMapping("/user/byIdentifier")
+    public Result<UserVO> getUserByIdentifier(
+            @RequestParam String identifier,
+            @RequestParam(defaultValue = "true") boolean isPhone) {
+        return authService.getUserByIdentifier(identifier, isPhone);
     }
 }

@@ -2,7 +2,7 @@ package com.elderlycare.auth.service;
 
 import com.elderlycare.auth.dto.*;
 import com.elderlycare.auth.entity.User;
-import com.elderlycare.auth.vo.UserVO;
+import com.elderlycare.common.vo.UserVO;
 import com.elderlycare.common.core.result.Result;
 
 import java.util.Map;
@@ -48,11 +48,12 @@ public interface AuthService {
      */
     Result<Map<String, Object>> getCurrentUserInfo();
     /**
-     * 根据手机号查询用户信息（对外Feign调用）
+     * 根据用户标识查询用户信息（对外Feign调用，不含密码）
+     * 支持通过手机号或用户ID查询
+     *
+     * @param identifier 用户标识（手机号或用户ID）
+     * @param isPhone 是否为手机号查询（true: 手机号，false: 用户ID）
+     * @return 用户信息
      */
-    Result<Map<String, Object>> getUserByPhone(String phone);
-    /**
-     * 根据用户ID查询用户信息（对外Feign调用）
-     */
-    Result<Map<String, Object>> getUserById(Integer id);
+    Result<UserVO> getUserByIdentifier(String identifier, boolean isPhone);
 }

@@ -393,13 +393,13 @@ public class NewsServiceImpl implements NewsService {
 
         List<Integer> newsIds = collectList.stream()
                 .map(NewsCollect::getNewsId)
-                .collect(Collectors.toList());
+                .toList();
 
         if (newsIds.isEmpty()) {
             return Result.success(new ArrayList<>());
         }
 
-        List<News> newsList = newsMapper.selectBatchIds(newsIds);
+        List<News> newsList = newsMapper.selectByIds(newsIds);
         List<HealthKnowledgeVO> voList = convertToVOList(newsList);
         return Result.success(voList);
     }
@@ -423,7 +423,7 @@ public class NewsServiceImpl implements NewsService {
         }
 
         Integer userId = securityUtil.getCurrentUserId();
-        List<Integer> newsIds = newsList.stream().map(News::getId).collect(Collectors.toList());
+        List<Integer> newsIds = newsList.stream().map(News::getId).toList();
 
         // 批量查询点赞和收藏状态
         Set<Integer> likedNewsIds = userId != null ? newsLikeMapper.selectLikedNewsIds(userId, newsIds) : Collections.emptySet();
@@ -435,7 +435,7 @@ public class NewsServiceImpl implements NewsService {
             vo.setIsLiked(userId != null && likedNewsIds.contains(news.getId()));
             vo.setIsCollected(userId != null && collectedNewsIds.contains(news.getId()));
             return vo;
-        }).collect(Collectors.toList());
+        }).toList();
     }
 
     /**
@@ -468,7 +468,7 @@ public class NewsServiceImpl implements NewsService {
             map.put("category", news.getCategory());
             map.put("summary", news.getSummary());
             return map;
-        }).collect(Collectors.toList());
+        }).toList();
 
         log.info("RAG 同步查询: category={}, 共 {} 篇文章", category, result.size());
         return Result.success(result);

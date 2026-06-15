@@ -86,6 +86,14 @@ public class JwtUtil {
     }
 
     /**
+     * 从 token 中获取用户类型
+     */
+    public Integer getUserTypeFromToken(String token) {
+        Claims claims = getClaims(token);
+        return claims.get("userType", Integer.class);
+    }
+
+    /**
      * 解析 token
      */
     public Claims parseToken(String token) {
@@ -107,8 +115,8 @@ public class JwtUtil {
     public boolean validateToken(String token) {
         try {
             Claims claims = getClaims(token);
-            Date expiration = claims.getExpiration();
-            return !expiration.before(new Date());
+            Date expirationToken = claims.getExpiration();
+            return !expirationToken.before(new Date());
         } catch (Exception e) {
             log.error("Token 验证失败：{}", e.getMessage());
             return false;

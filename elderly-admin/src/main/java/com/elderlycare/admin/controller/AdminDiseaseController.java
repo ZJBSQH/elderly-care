@@ -4,6 +4,7 @@ import com.elderlycare.admin.dto.AdminDiseaseAddDTO;
 import com.elderlycare.admin.service.DiseaseService;
 import com.elderlycare.admin.vo.DiseaseVO;
 import com.elderlycare.common.core.result.Result;
+import com.elderlycare.common.security.util.SecurityUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,8 @@ import java.util.List;
 public class AdminDiseaseController {
 
     private final DiseaseService diseaseService;
+    /** 安全工具类，用于校验管理员权限 */
+    private final SecurityUtil securityUtil;
 
     /**
      * 获取疾病列表
@@ -40,6 +43,7 @@ public class AdminDiseaseController {
      */
     @GetMapping("/list")
     public Result<List<DiseaseVO>> list(@RequestParam(required = false) String category) {
+        securityUtil.requireAdmin();
         log.info("获取疾病列表请求，category: {}", category);
         return diseaseService.list(category);
     }
@@ -52,6 +56,7 @@ public class AdminDiseaseController {
      */
     @GetMapping("/{id}")
     public Result<DiseaseVO> getById(@PathVariable Long id) {
+        securityUtil.requireAdmin();
         log.info("获取疾病详情请求，id: {}", id);
         return diseaseService.getById(id);
     }
@@ -64,6 +69,7 @@ public class AdminDiseaseController {
      */
     @PostMapping("/add")
     public Result<Void> add(@Valid @RequestBody AdminDiseaseAddDTO dto) {
+        securityUtil.requireAdmin();
         log.info("添加疾病请求，diseaseName: {}", dto.getDiseaseName());
         return diseaseService.add(dto);
     }
@@ -77,6 +83,7 @@ public class AdminDiseaseController {
      */
     @PutMapping("/update")
     public Result<Void> update(@RequestParam Long id, @Valid @RequestBody AdminDiseaseAddDTO dto) {
+        securityUtil.requireAdmin();
         log.info("更新疾病请求，id: {}, diseaseName: {}", id, dto.getDiseaseName());
         return diseaseService.update(id, dto);
     }
@@ -89,6 +96,7 @@ public class AdminDiseaseController {
      */
     @DeleteMapping("/delete/{id}")
     public Result<Void> delete(@PathVariable Long id) {
+        securityUtil.requireAdmin();
         log.info("删除疾病请求，id: {}", id);
         return diseaseService.delete(id);
     }
