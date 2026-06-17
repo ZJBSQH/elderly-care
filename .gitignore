@@ -40,10 +40,37 @@ redis-data/
 ### Personal files ###
 .env
 elderly-auth/cp.txt
-docs/mianshi/
-docs/code-review/
 项目总结*.md
 dsco/
+
+### 文档目录 —— 个人学习资料（问答解惑、面试准备），不上传公开仓库 ###
+docs/
+
+### AI 模块自动生成的迁移指南等 HTML ###
+elderly-ai/*.html
+
+### 导出/备份压缩包 ###
+*.zip
+*.tar.gz
+*.rar
+nacos-configs/*.zip
+nacos-configs/*.tar.gz
+
+### 前端调试文档 ###
+elder_care/*_DEBUG.md
+elder_care/*_README.md
+elder_care/*_INTEGRATION.md
+elder_care/FIX_*.md
+
+### 飞算工具规则（个人 IDE 配置性质） ###
+.feisuan/
+
+### 临时文件 ###
+*.tmp
+*.bak
+*~
+.DS_Store
+Thumbs.db
 
 ### Claude Code ###
 .claude/
